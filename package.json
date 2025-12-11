@@ -1,0 +1,13 @@
+{
+  "name": "whip-montez-app",
+  "version": "1.0.0",
+  "description": "Whip Montez full-stack app",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "start": "cd backend && npm start",
+    "install": "cd backend && npm install"
+  }
+}
