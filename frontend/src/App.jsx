@@ -1,88 +1,200 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Terminal, 
-  Play, 
-  Pause, 
-  Rewind, 
-  ShoppingBag, 
-  Radio, 
-  ShieldAlert, 
-  Phone, 
-  Disc, 
-  Cpu, 
-  X, 
-  Maximize2, 
-  Minus, 
-  FileText, 
-  Film, 
-  Mic, 
-  MessageSquare, 
-  Sparkles, 
-  Music, 
-  Video, 
-  Share2, 
-  Heart, 
-  MessageCircle, 
-  CreditCard, 
-  Lock, 
-  Truck, 
-  CheckCircle, 
-  MapPin, 
-  Calendar, 
-  Ticket, 
-  Flame, 
-  Search, 
-  Database, 
-  Globe, 
-  Newspaper, 
-  ExternalLink, 
-  User, 
-  Hash, 
-  Grid, 
-  Headphones, 
-  Activity, 
-  Zap, 
-  Mic2, 
-  Music4, 
-  Upload, 
-  Wand2, 
-  Sliders, 
-  Briefcase, 
-  Award, 
-  BookOpen, 
-  ArrowRightLeft
+  Terminal, Play, Pause, Rewind, ShoppingBag, Radio, ShieldAlert, Phone, Disc, Cpu, 
+  X, Maximize2, Minus, FileText, Film, Mic, MessageSquare, Sparkles, Music, Video, 
+  Share2, Heart, MessageCircle, CreditCard, Lock, Truck, CheckCircle, MapPin, 
+  Calendar, Ticket, Flame, Search, Database, Globe, Newspaper, ExternalLink, User, 
+  Hash, Grid, Headphones, Activity, Zap, Wallet, Power, Sliders, Briefcase, 
+  RefreshCw, ToggleLeft, ToggleRight, Filter, Plus, Trash2, Edit2, 
+  Camera, TrendingUp, Users, Image as ImageIcon, Link as LinkIcon
 } from 'lucide-react';
 
-// --- GEMINI API HELPERS ---
-const apiKey = ""; // Injected at runtime
+// --- FIREBASE IMPORTS ---
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, arrayUnion } from 'firebase/firestore';
 
-const callGemini = async (prompt, systemInstruction = "") => {
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          systemInstruction: { parts: [{ text: systemInstruction }] }
-        })
-      }
-    );
+// --- FIREBASE SETUP ---
+let app = null;
+let auth = null;
+let db = null;
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+try {
+  if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+    const firebaseConfig = JSON.parse(__firebase_config);
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "demo") {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
     }
+  }
+} catch (e) {
+  console.error("Firebase initialization failed:", e);
+}
 
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "DATA CORRUPTION ERROR. TRY AGAIN.";
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "CONNECTION LOST. SIGNAL WEAK.";
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// --- GEMINI API HELPERS ---
+const apiKey = "AIzaSyBVEPNdugd7jzRxUzcZOXW1NEFNK0eY3TM"; // Injected at build time
+
+const callGemini = async (prompt, systemInstruction = "", useSearch = false) => {
+  // 1. SIMULATION MODE (Fast Fallback if no key)
+  // Check if apiKey is explicitly empty. If so, return mock data immediately.
+  if (apiKey === "") {
+      console.log("System running in Simulation Mode (No API Key found)");
+      await new Promise(r => setTimeout(r, 1500)); // Simulate network delay
+      
+      // Mock Responses for The Lab features
+      if (prompt.includes("Album Cover")) {
+           // A tiny, transparent mock PNG base64 string
+           const mockImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; 
+           return JSON.stringify({ predictions: [{ bytesBase64Encoded: mockImageBase64 }] }); // Mock base64 data for image
+      }
+      if (systemInstruction.includes("battle rapper")) {
+          return "Yo, your rhymes are weak, your style is obsolete / I crash your whole system with one delete / You claiming the throne? You must be joking / My flow is the code that leaves you broken.";
+      }
+      if (systemInstruction.includes("Viral Video Agent")) {
+          return JSON.stringify([
+              { concept: "The 360 Spin", visual: "Whip performs a smooth, continuous 360 camera spin, catching three different outfit changes.", trend: "Seamless Transition", shots: ["Wide shot 360 cam", "Close up on transition points"] },
+              { concept: "Matrix Glitch", visual: "Whip freezes mid-move, the background glitches into neon data streams, and she 'reboots' to finish the bar.", trend: "Aesthetic Glitchcore", shots: ["High frame rate slow-mo", "Green screen overlay"] },
+              { concept: "Phone Booth Cipher", visual: "Whip delivers bars inside an old NYC phone booth while neon rain streams down the glass.", trend: "Cinematic Mood", shots: ["Exterior low light", "Interior close-up on mic"] }
+          ]);
+      }
+      if (systemInstruction.includes("Whip Montez") && systemInstruction.includes("2004")) {
+          return "Ayo, chill. I'm just here protecting my data. Red Hook stand up! 🗽";
+      }
+      if (systemInstruction.includes("crate digger")) {
+          return JSON.stringify([
+              { artist: "The Honey Drippers", track: "Impeach the President", year: "1973", desc: "Classic drum break used by everyone." },
+              { artist: "Bob James", track: "Nautilus", year: "1974", desc: "Haunting keys, bassline crazy." },
+              { artist: "Skull Snaps", track: "It's A New Day", year: "1973", desc: "Hardest drums in the game." }
+          ]);
+      }
+      if (systemInstruction.includes("A&R")) {
+          return JSON.stringify({ critique: "The flow is tight but needs more aggression. Hook is catchy, but the delivery needs more energy.", commercial: 8, street: 6 });
+      }
+      if (prompt.includes("News") || systemInstruction.includes("news")) {
+         return JSON.stringify([
+             { id: 4, date: "DEC 10 2004", source: "MTV NEWS", title: "SNOOP DOGG DROPS R&G", content: "The Doggfather returns with a new masterpiece.", tags: ["MUSIC"] },
+             { id: 5, date: "NOV 15 2004", source: "IGN", title: "HALF-LIFE 2 RELEASED", content: "Valve's long awaited shooter is finally here.", tags: ["GAMING"] },
+             { id: 6, date: "OCT 20 2004", source: "NY TIMES", title: "RED SOX BREAK CURSE", content: "Historic win changes baseball forever.", tags: ["SPORTS"] }
+         ]);
+      }
+      // Ghostwriter fallback
+      if (systemInstruction.includes("Whip Montez")) {
+          return "Yo, I'm from the concrete jungle where dreams are made / But nightmares lurk in the shade / I hustle hard just to get paid / In this game of life, I never fade.\n\nBrooklyn stand up, we in the building / Stacking paper to the ceiling / This is how I'm feeling / Real talk, no concealing.";
+      }
+      
+      return "DATA CORRUPTION. UNABLE TO PROCESS REQUEST.";
+  }
+
+  // 2. REAL API CALL (If key exists and passes initial check)
+  const delays = [1000, 2000, 4000, 8000, 16000];
+  
+  // Image Generation Model Check (using imagen-4.0-generate-001)
+  if (prompt.includes("Album Cover")) {
+     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+     const payload = { instances: { prompt: prompt + ", 1990s hip hop album cover, gritty neon, high contrast, vinyl texture" }, parameters: { "sampleCount": 1 } };
+     
+     for (let i = 0; i <= delays.length; i++) {
+        try {
+          const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          if (!response.ok) {
+             if (response.status === 403) throw new Error("INVALID_KEY");
+             if ((response.status === 429 || response.status >= 500) && i < delays.length) {
+                await new Promise(resolve => setTimeout(resolve, delays[i]));
+                continue;
+             }
+             throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return JSON.stringify(data);
+        } catch (error) {
+             console.error("Image API call failed:", error);
+             if (i === delays.length || error.message === "INVALID_KEY") {
+                return JSON.stringify({ error: "IMAGE_CONNECTION_LOST" });
+             }
+             await new Promise(resolve => setTimeout(resolve, delays[i]));
+        }
+     }
+  }
+
+
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] }
+      };
+
+      if (useSearch) {
+        payload.tools = [{ google_search: {} }];
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 403) throw new Error("INVALID_KEY"); // Don't retry if key is wrong
+        
+        if ((response.status === 429 || response.status >= 500) && i < delays.length) {
+          await new Promise(resolve => setTimeout(resolve, delays[i]));
+          continue;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "DATA CORRUPTION ERROR. TRY AGAIN.";
+    } catch (error) {
+      console.error("Gemini API call failed:", error);
+      if (i === delays.length || error.message === "INVALID_KEY") {
+        // Fallback Logic for failed calls
+        if (systemInstruction.includes("battle rapper")) {
+            return "Yo, connection's weak but my flow is strong / I been running this game all along / You trying to hack the system? You wrong / Now listen close to the words of my song.";
+        }
+        if (systemInstruction.includes("crate digger")) {
+            return JSON.stringify([
+                { artist: "The Honey Drippers", track: "Impeach the President", year: "1973", desc: "Classic drum break (Offline Mode)." },
+                { artist: "Bob James", track: "Nautilus", year: "1974", desc: "Haunting keys (Offline Mode)." },
+                { artist: "Skull Snaps", track: "It's A New Day", year: "1973", desc: "Hardest drums in the game (Offline Mode)." }
+            ]);
+        }
+        if (systemInstruction.includes("A&R")) {
+            return JSON.stringify({ critique: "Offline Mode: Cannot analyze text. Flow seems okay.", commercial: 5, street: 5 });
+        }
+        return "CONNECTION LOST. SIGNAL WEAK (API ERROR).";
+      }
+      await new Promise(resolve => setTimeout(resolve, delays[i]));
+    }
   }
 };
 
 // --- COMPONENTS ---
+
+// 0. REIMAGINED LIVEWIRE LOGO (VECTOR STYLE)
+const LivewireLogo = () => (
+  <div className="flex flex-col items-end group cursor-pointer select-none pl-8">
+    <div className="relative">
+      <div className="absolute -inset-10 bg-green-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="relative z-10">
+        <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter text-white transform -skew-x-12 leading-[0.85] group-hover:text-green-50 transition-colors" 
+            style={{ textShadow: '3px 3px 0px #000, 0 0 20px rgba(0,255,65,0.3)' }}>
+          LIVEWIRE
+        </h1>
+      </div>
+      <span className="text-[10px] font-mono font-bold tracking-[0.35em] text-gray-500 uppercase mt-4 mr-1 group-hover:text-[#00ff41] transition-colors block text-right z-20">
+        ENTERTAINMENT NYC
+      </span>
+    </div>
+  </div>
+);
 
 // 1. BOOT SEQUENCE
 const BootSequence = ({ onComplete }) => {
@@ -108,6 +220,8 @@ const BootSequence = ({ onComplete }) => {
 
   useEffect(() => {
     let delay = 0;
+    const timeouts = []; // Store timeouts to clear them
+
     bootSequenceData.forEach((item, index) => {
       const isError = item.text.includes("ERROR");
       const isRecovery = item.text.includes("RECOVERY");
@@ -115,17 +229,25 @@ const BootSequence = ({ onComplete }) => {
       const stepDelay = isError ? 1500 : isRecovery ? 2000 : Math.random() * 300 + 100;
       delay += stepDelay;
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setLines(prev => [...prev, item]);
         const el = document.getElementById('boot-log');
         if(el) el.scrollTop = el.scrollHeight;
         
         if (index === bootSequenceData.length - 1) {
-          setTimeout(onComplete, 1200);
+          const finalTimeoutId = setTimeout(onComplete, 1200);
+          timeouts.push(finalTimeoutId);
         }
       }, delay);
+      
+      timeouts.push(timeoutId);
     });
-  }, []);
+
+    // Cleanup function to prevent duplication in StrictMode/Remounts
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, []); // Run only once on mount
 
   return (
     <div className="h-screen w-full bg-black flex flex-col justify-start p-10 font-mono text-xl z-50 absolute top-0 left-0 overflow-hidden">
@@ -141,7 +263,7 @@ const BootSequence = ({ onComplete }) => {
   );
 };
 
-// Background Carousel
+// Background Carousel Component
 const BackgroundCarousel = ({ images }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
@@ -177,10 +299,9 @@ const BackgroundCarousel = ({ images }) => {
   );
 };
 
-// 2. HOME (Interactive Home)
+// 2. HOME
 const Home = ({ setSection }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
-  
   const [newsIndex, setNewsIndex] = useState(0);
   const headlines = [
     "WHIP MONTEZ SIGNS TO LIVEWIRE",
@@ -242,16 +363,16 @@ const Home = ({ setSection }) => {
       action: () => setSection('style')
     },
     {
-      id: 'battle',
-      title: 'THE DOJO',
-      subtitle: 'CIPHER_CHALLENGE',
-      icon: Flame,
-      color: 'text-red-500',
-      borderColor: 'border-red-500',
-      hoverBg: 'hover:bg-red-500/10',
-      shadow: 'group-hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]',
-      content: 'VS AI OPPONENT',
-      action: () => setSection('battle')
+      id: 'studio',
+      title: 'THE LAB',
+      subtitle: 'PRODUCTION_SUITE',
+      icon: Sliders,
+      color: 'text-pink-500',
+      borderColor: 'border-pink-500',
+      hoverBg: 'hover:bg-pink-500/10',
+      shadow: 'group-hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]',
+      content: 'MAKE BEATS / BATTLE',
+      action: () => setSection('studio')
     },
     {
       id: 'tour',
@@ -273,6 +394,7 @@ const Home = ({ setSection }) => {
       
       <div className="relative z-30 flex-1 flex flex-col justify-between p-6 md:p-12 bg-gradient-to-t from-black via-transparent to-black/40">
         
+        {/* Top Section: Branding */}
         <div className="flex justify-between items-start w-full">
           <div className="animate-slide-in-left">
             <h1 className="chrome-text text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none opacity-90 drop-shadow-2xl">
@@ -285,18 +407,7 @@ const Home = ({ setSection }) => {
           </div>
           
           <div className="flex flex-col items-end gap-4">
-            <div className="border-2 border-white bg-black/80 px-4 py-2 flex items-center gap-3 shadow-[0_0_15px_rgba(255,255,255,0.5)] backdrop-blur-sm transform hover:scale-105 transition-transform cursor-default select-none group">
-               <div className="relative w-8 h-8 flex items-center justify-center">
-                  <div className="absolute w-full h-[2px] bg-white group-hover:bg-[#00ff41] transition-colors"></div>
-                  <div className="absolute h-full w-[2px] bg-white group-hover:bg-[#00ff41] transition-colors"></div>
-                  <div className="w-6 h-6 border border-white rounded-full animate-spin-slow group-hover:border-[#00ff41]"></div>
-                  <Zap size={16} className="text-yellow-400 relative z-10 fill-current"/>
-               </div>
-               <div className="text-right">
-                  <h2 className="text-white font-black italic tracking-tighter text-xl leading-none group-hover:text-shadow-glow transition-all">LIVEWIRE</h2>
-                  <p className="text-gray-400 text-[8px] tracking-[0.2em] font-bold uppercase group-hover:text-[#00ff41] transition-colors">Entertainment LLC</p>
-               </div>
-            </div>
+            <LivewireLogo />
 
             <div className="hidden md:block text-right">
                <div className="text-white font-mono text-xs opacity-50">SYSTEM_STATUS</div>
@@ -350,7 +461,7 @@ const Home = ({ setSection }) => {
   );
 };
 
-// 3. MUSIC PLAYER
+// 3. MUSIC PLAYER (Evidence Tapes)
 const MusicPlayer = () => {
   const [selectedAlbumId, setSelectedAlbumId] = useState('tape1');
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -418,6 +529,7 @@ const MusicPlayer = () => {
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
+        {/* Video Modal */}
         {showVideoModal && (
           <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-8 backdrop-blur-sm">
             <div className="w-full max-w-3xl border-2 border-[#00ff41] bg-black shadow-[0_0_50px_rgba(0,255,65,0.2)] flex flex-col">
@@ -499,6 +611,7 @@ const MusicPlayer = () => {
         </div>
 
         <div className="w-1/3 min-w-[300px] border-l border-[#333] bg-[#080808] flex flex-col hidden md:flex">
+          {/* Alpine-style Deck */}
           <div className="p-6 bg-[#111] border-b border-[#333]">
              <div className="bg-[#0f281f] border-2 border-[#333] rounded-sm p-4 shadow-inner relative overflow-hidden h-32 flex flex-col justify-between mb-4">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.1)_50%,rgba(0,0,0,0)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
@@ -568,104 +681,133 @@ const Bio = ({ setSection }) => {
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/60 z-10"></div>
       
+      {/* Main Profile Container - 2004 Flash Site Style */}
       <div className="relative z-30 w-full max-w-5xl h-[85vh] bg-[#0f0f0f] border-2 border-[#333] flex flex-col md:flex-row shadow-2xl">
         
+        {/* Left Sidebar: ID Card / Navigation */}
         <div className="w-full md:w-80 bg-[#111] border-r border-[#333] p-6 flex flex-col gap-6">
            <div className="aspect-square w-full bg-[#222] border-4 border-[#333] relative overflow-hidden group">
-              <img 
-                src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80" 
-                className="w-full h-full object-cover grayscale contrast-125 group-hover:scale-110 transition-transform duration-500" 
-                alt="Whip Montez"
-              />
-              <div className="absolute bottom-2 right-2 bg-[#00ff41] text-black text-xs font-bold px-2 py-0.5 animate-pulse">
+             <img 
+               src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80" 
+               className="w-full h-full object-cover grayscale contrast-125 group-hover:scale-110 transition-transform duration-500" 
+               alt="Whip Montez"
+             />
+             <div className="absolute bottom-2 right-2 bg-[#00ff41] text-black text-xs font-bold px-2 py-0.5 animate-pulse">
                  ONLINE
-              </div>
+             </div>
            </div>
 
            <div className="space-y-1">
-              <h2 className="text-2xl font-black text-white tracking-tighter uppercase">Whip Montez</h2>
-              <p className="text-[#00ff41] font-mono text-xs">RED HOOK, BROOKLYN</p>
-              <p className="text-gray-500 font-mono text-xs">LIVEWIRE RECORDS</p>
+             <h2 className="text-2xl font-black text-white tracking-tighter uppercase">Whip Montez</h2>
+             <p className="text-[#00ff41] font-mono text-xs">RED HOOK, BROOKLYN</p>
+             <p className="text-gray-500 font-mono text-xs">LIVEWIRE RECORDS</p>
            </div>
 
            <div className="flex-1 space-y-2">
-              <button onClick={() => setSection('music')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
+             <button onClick={() => setSection('music')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
                  <Disc size={14}/> DISCOGRAPHY
-              </button>
-              <button onClick={() => setSection('tour')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
+             </button>
+             <button onClick={() => setSection('tour')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
                  <Calendar size={14}/> TOUR DATES
-              </button>
-              <button onClick={() => setSection('news')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
+             </button>
+             <button onClick={() => setSection('news')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
                  <Newspaper size={14}/> PRESS / NEWS
-              </button>
-              <button onClick={() => window.open('https://www.youtube.com/results?search_query=90s+hip+hop', '_blank')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
+             </button>
+             <button onClick={() => window.open('https://www.youtube.com/results?search_query=90s+hip+hop', '_blank')} className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 py-3 text-xs font-bold tracking-widest hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all flex items-center justify-center gap-2">
                  <Video size={14}/> VIDEOS
-              </button>
+             </button>
            </div>
 
            <div className="border-t border-[#333] pt-4">
-              <p className="text-[10px] text-gray-500 font-mono mb-2">MANAGEMENT:</p>
-              <div className="text-xs text-white font-bold">JARI MONTEZ</div>
-              <div className="text-xs text-gray-400">jari@livewire-ent.com</div>
+             <p className="text-[10px] text-gray-500 font-mono mb-2">MANAGEMENT:</p>
+             <div className="text-xs text-white font-bold">JARI MONTEZ</div>
+             <div className="text-xs text-gray-400">jari@livewire-ent.com</div>
            </div>
         </div>
 
+        {/* Right Content: Bio Text & Stats */}
         <div className="flex-1 bg-[#0a0a0a] flex flex-col relative overflow-hidden">
+           {/* Header */}
            <div className="h-16 bg-[#00ff41] text-black p-4 flex justify-between items-center">
-              <h1 className="text-4xl font-black tracking-tighter">OFFICIAL PROFILE</h1>
-              <div className="flex gap-2">
+             <h1 className="text-4xl font-black tracking-tighter">OFFICIAL PROFILE</h1>
+             <div className="flex gap-2">
                  <div className="w-3 h-3 bg-black"></div>
                  <div className="w-3 h-3 bg-black"></div>
                  <div className="w-3 h-3 bg-black"></div>
-              </div>
+             </div>
            </div>
 
+           {/* Scrollable Content */}
            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-              <div className="max-w-2xl mx-auto space-y-8">
+             <div className="max-w-2xl mx-auto space-y-8">
+                 
+                 {/* Quote */}
                  <blockquote className="border-l-4 border-[#00ff41] pl-6 py-2">
-                    <p className="text-xl md:text-2xl font-bold text-white italic leading-relaxed">
-                       "They said Red Hook was underwater before the hurricane ever hit. In '04, I wasn't just a rapper; I was the life raft."
-                    </p>
+                   <p className="text-xl md:text-2xl font-bold text-white italic leading-relaxed">
+                      "I’ve paid my dues… I’ve developed my skills… I am ready."
+                   </p>
                  </blockquote>
 
+                 {/* Stats Grid */}
                  <div className="grid grid-cols-2 gap-4 border-y border-[#333] py-6 my-6">
-                    <div>
-                       <div className="text-[10px] text-gray-500 font-mono uppercase">Style</div>
-                       <div className="text-[#00ff41] font-bold">Boom Bap / Noir / Lyrical</div>
-                    </div>
-                    <div>
-                       <div className="text-[10px] text-gray-500 font-mono uppercase">Debut</div>
-                       <div className="text-[#00ff41] font-bold">Livewire Sessions (2004)</div>
-                    </div>
-                    <div>
-                       <div className="text-[10px] text-gray-500 font-mono uppercase">Influence</div>
-                       <div className="text-[#00ff41] font-bold">Nas, Lauryn Hill, Big L</div>
-                    </div>
-                    <div>
-                       <div className="text-[10px] text-gray-500 font-mono uppercase">Status</div>
-                       <div className="text-[#00ff41] font-bold animate-pulse">ARCHIVE RECOVERY...</div>
-                    </div>
+                   <div>
+                      <div className="text-[10px] text-gray-500 font-mono uppercase">Name</div>
+                      <div className="text-[#00ff41] font-bold">Wanda Altagracia Almonte</div>
+                   </div>
+                   <div>
+                      <div className="text-[10px] text-gray-500 font-mono uppercase">Origin</div>
+                      <div className="text-[#00ff41] font-bold">Red Hook, Brooklyn</div>
+                   </div>
+                   <div>
+                      <div className="text-[10px] text-gray-500 font-mono uppercase">Key Features</div>
+                      <div className="text-[#00ff41] font-bold">Erick Sermon, Talib Kweli</div>
+                   </div>
+                   <div>
+                      <div className="text-[10px] text-gray-500 font-mono uppercase">Education</div>
+                      <div className="text-[#00ff41] font-bold">LaGuardia HS (Dance)</div>
+                   </div>
                  </div>
 
-                 <div className="prose prose-invert prose-sm font-mono text-gray-300 leading-relaxed">
-                    <p className="first-letter:text-4xl first-letter:text-[#00ff41] first-letter:font-black first-letter:float-left first-letter:mr-2">
-                       While the rest of the city was chasing the "bling era"—popping bottles in midtown and wearing oversized button-downs—Whip was sitting on the stoop of 485 Columbia Street, dissecting the geometry of a corner store hustle.
-                    </p>
-                    <p className="mt-4">
-                       The turning point came when <strong className="text-white">Erick Sermon</strong> found her tape. A mixtape passed from a cousin to a barber to a Livewire intern. He signed her the next day. The deal was supposed to change everything. It was validation for the block.
-                    </p>
-                    <p className="mt-4">
-                       But Whip didn't move alone. Her brother <strong className="text-white">Jari</strong> stepped up as manager, the only one she trusted to watch her back in a room full of sharks. Together, we navigated the madness of the mid-2000s music industry. Jari held the line against out-of-touch executives trying to water down her sound for radio play. We spent endless nights in the studio, battling over marketing budgets, planning showcase runs, and fighting to keep the vision pure amidst the chaos of major label politics.
-                    </p>
-                    <p className="mt-4">
-                       But then the hard drive crashed. Or maybe the budget dried up. Or maybe Whip just saw the industry for the plastic machine it was and walked back across the highway into the shadows. She vanished.
-                    </p>
-                    <p className="mt-4 text-[#00ff41] font-bold border-t border-[#333] pt-4">
-                       {'>'} SYSTEM NOTE: This OS is all that's left. A digital ghost of the girl who almost took the crown.
-                    </p>
+                 {/* The Story */}
+                 <div className="prose prose-invert prose-sm font-mono text-gray-300 leading-relaxed space-y-6">
+                   <p className="first-letter:text-4xl first-letter:text-[#00ff41] first-letter:font-black first-letter:float-left first-letter:mr-2">
+                      Introducing… "WHIP MONTEZ" (born Wanda Altagracia Almonte) a Dominican fem-cee reppin’ Brooklyn's Red Hook Housing Projects.
+                   </p>
+                   
+                   <p>
+                      Whip is currently recording her first album comprised of a variety of hip-hop tracks. Her highly anticipated debut album tentatively titled <strong className="text-white">“Can’t Nobody Whip Montez”</strong> is due for release in 2006 and contains sure shot hits like "Take it slow" where she advises men not to wreck a potential relationship by moving too fast. On the automatic head-banger "No Matter What You Say," WHIP pulls no punches and goes straight at her critics. WHIP definitely demonstrates her versatility, which distinguishes her from her counter-parts when she penned, "Dear God," an, introspective song that touches upon numerous issues that beset society and tragedies that have impacted us all.
+                   </p>
+
+                   <div className="border-l-2 border-[#333] pl-4 italic text-gray-400">
+                      2004 was a great year for Whip Montez. She was featured alongside the Green-Eyed Bandit, <strong className="text-white">Erick Sermon</strong> and one of Brooklyn’s finest MC’s <strong className="text-white">Talib Kweli</strong>. The three collaborated on a track called “Chillin” off Sermon’s last album “Chilltown, NY”. It wasn’t long after Montez penned her verse that Sermon called on Talib to complete the track with a verse of his own.
+                   </div>
+
+                   <p>
+                      “This was a dream come true to be in the booth with a hip-hop legend, and Talib it was truly an educational experience, one that I will cherish for a long time.”
+                   </p>
+
+                   <p>
+                      With a good number of showcases and college shows, she has opened up for notable artists like 112, Slum Village, and the Infamous Mobb Deep to name a few. This has definitely helped her expand her fan base and create a buzz for her. Last year, WHIP had several overseas performances, in particular, the Dominican Republic, Coral Hamaca Resort, where she blessed over 2,000 screaming fans. “Those shows were crazy, because they really appreciate artist that make trips to their country. In DR, they held me down like I was in BK.”
+                   </p>
+
+                   <p>
+                      Again, last year WHIP found the “Good Life” when she doubled-up with super-legend Lisa-Lisa for a track that was number 1 in France. “People underestimate Europe! It’s great for new artist because they just appreciate good music in place like France, Spain and Germany.” However, Montez is ready to “whip” the competition in the States, she’s ready to do more than just a few “bet placing” freestyles. 
+                   </p>
+
+                   <p>
+                      Consequently, Whip is no stranger to the game… The youngest of four children, Whip was introduced to Hip-Hop as a teenager while attending Fiorello H. LaGuardia high school of Performing Arts in NYC where she studied dance.
+                   </p>
+
+                   <p>
+                      It wasn’t until the summer of ’99 that Whip discovered her passion for writing lyrics as a way to express herself. Once she began writing, battling on corners and joining in on ciphers was a natural progression. Soon the recognition followed and she took her gift more seriously. The only broad in the cipher, Whip usually had much to prove. But she never worries about that because, seriously…. <span className="text-[#00ff41] font-bold">can’t anybody Whip Montez!</span>
+                   </p>
+
+                   <p className="mt-4 text-[#00ff41] font-bold border-t border-[#333] pt-4">
+                      {'>'} SYSTEM NOTE: Artist Profile Last Updated: DEC 04 2004
+                   </p>
                  </div>
 
-              </div>
+             </div>
            </div>
         </div>
 
@@ -674,72 +816,104 @@ const Bio = ({ setSection }) => {
   );
 };
 
-// 5. TOUR ARCHIVE
+// 5. TOUR ARCHIVE (Restored Ticket Hub)
 const TourHistory = () => {
   const dates = [
-    { city: "RED HOOK, NY", venue: "THE REC CENTER", date: "AUG 14 2004", status: "SOLD OUT" },
-    { city: "HARLEM, NY", venue: "APOLLO THEATER (OPENER)", date: "SEP 02 2004", status: "COMPLETED" },
-    { city: "PHILADELPHIA, PA", venue: "THE TLA", date: "SEP 15 2004", status: "CANCELLED" },
-    { city: "BOSTON, MA", venue: "MIDDLE EAST", date: "SEP 22 2004", status: "CANCELLED" },
-    { city: "TORONTO, ON", venue: "OPERA HOUSE", date: "OCT 05 2004", status: "PENDING..." },
+    { city: "RED HOOK, NY", venue: "THE REC CENTER", date: "AUG 14 2004", status: "SOLD OUT", price: "$15.00", seats: "0", info: "Homecoming Show" },
+    { city: "HARLEM, NY", venue: "APOLLO THEATER", date: "SEP 02 2004", status: "COMPLETED", price: "$25.00", seats: "0", info: "Opener for Mobb Deep" },
+    { city: "TORONTO, ON", venue: "OPERA HOUSE", date: "OCT 05 2004", status: "SELLING FAST", price: "$22.00 CAD", seats: "42", info: "First Canadian Date" },
+    { city: "PHILADELPHIA, PA", venue: "THE TROCADERO", date: "OCT 12 2004", status: "AVAILABLE", price: "$20.00", seats: "150", info: "w/ Beanie Sigel" },
+    { city: "BOSTON, MA", venue: "PARADISE ROCK CLUB", date: "OCT 15 2004", status: "AVAILABLE", price: "$18.00", seats: "85", info: "All Ages" }
   ];
 
   return (
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/70 z-10"></div>
-      <div className="relative z-30 w-full max-w-4xl h-[80vh] bg-[#111] border border-[#333] shadow-2xl flex flex-col">
-        <div className="bg-[#00ff41] text-black px-4 py-2 flex justify-between items-center font-bold">
-           <span className="flex items-center gap-2"><Truck size={18}/> WORLD_TOUR_LOG.EXE</span>
-           <div className="flex gap-1">
-             <div className="w-3 h-3 bg-black"></div>
-             <div className="w-3 h-3 bg-black"></div>
+      <div className="relative z-30 w-full max-w-5xl h-[85vh] bg-[#111] border border-[#333] shadow-2xl flex flex-col font-sans">
+        <div className="bg-[#2d2d2d] text-gray-400 px-2 py-1 flex justify-between items-center border-b border-[#444] shadow-none">
+           <div className="flex items-center gap-2">
+             <Globe size={14} className="text-[#00ff41]"/>
+             <span className="text-xs font-bold text-gray-300 font-sans">TicketHub 2004 - Livewire Events</span>
            </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-8">
-           <div className="border-b-2 border-[#333] pb-6 mb-6">
-              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-2">THE 'LOST' TOUR</h1>
-              <p className="font-mono text-[#00ff41]">SUMMER/FALL 2004 // EAST COAST LEG</p>
+        <div className="flex-1 overflow-y-auto bg-[#050505] p-0 text-gray-300">
+           <div className="bg-[#111] text-white p-4 border-b-2 border-[#00ff41] flex justify-between items-end">
+             <div>
+               <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-1 italic font-sans text-white">TICKET_HUB <span className="text-[#00ff41]">2004</span></h1>
+             </div>
            </div>
-           
-           <div className="grid gap-4">
-              {dates.map((gig, i) => (
-                <div key={i} className="flex flex-col md:flex-row md:items-center justify-between border border-[#333] p-4 bg-[#0a0a0a] hover:border-[#00ff41] transition-colors group">
-                   <div className="flex items-center gap-4">
-                      <div className="text-2xl font-black text-gray-700 group-hover:text-white transition-colors">{(i+1).toString().padStart(2, '0')}</div>
-                      <div>
-                         <div className="text-white font-bold text-lg flex items-center gap-2"><MapPin size={14} className="text-[#00ff41]"/> {gig.city}</div>
-                         <div className="text-gray-500 font-mono text-xs">{gig.venue}</div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-6 mt-4 md:mt-0">
-                      <div className="text-gray-400 font-mono text-sm flex items-center gap-2"><Calendar size={14}/> {gig.date}</div>
-                      <div className={`px-3 py-1 text-xs font-bold border ${
-                        gig.status === 'SOLD OUT' ? 'bg-[#00ff41] text-black border-[#00ff41]' :
-                        gig.status === 'CANCELLED' ? 'bg-red-900 text-red-200 border-red-700' :
-                        'border-gray-600 text-gray-400'
-                      }`}>
-                        {gig.status}
-                      </div>
-                   </div>
+           <div className="p-4">
+             <table className="w-full text-left border-collapse border border-[#333] bg-[#050505] text-xs md:text-sm shadow-none font-sans">
+                <thead className="bg-[#1a1a1a] text-[#00ff41]">
+                  <tr>
+                    <th className="p-2 border border-[#333] w-16 text-center">DATE</th>
+                    <th className="p-2 border border-[#333]">EVENT / VENUE</th>
+                    <th className="p-2 border border-[#333] w-24">CITY</th>
+                    <th className="p-2 border border-[#333] w-20">PRICE</th>
+                    <th className="p-2 border border-[#333] w-24 text-center">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dates.map((gig, i) => (
+                    <tr key={i} className={`border-b border-[#333] ${i % 2 === 0 ? 'bg-[#0a0a0a]' : 'bg-[#0f0f0f]'} hover:bg-[#1a1a1a] transition-colors group`}>
+                      <td className="p-2 border-r border-[#333] font-bold text-gray-400 whitespace-nowrap text-center">
+                        <div className="flex flex-col items-center leading-tight">
+                          <span className="text-[10px] uppercase text-gray-600">{gig.date.split(' ')[0]}</span>
+                          <span className="text-lg text-white font-black group-hover:text-[#00ff41] transition-colors">{gig.date.split(' ')[1]}</span>
+                          <span className="text-[9px] text-gray-600">{gig.date.split(' ')[2]}</span>
+                        </div>
+                      </td>
+                      <td className="p-2 border-r border-[#333] align-top">
+                        <div className="font-bold text-white uppercase underline cursor-pointer hover:text-[#00ff41]">WHIP MONTEZ - LIVE</div>
+                        <div className="text-[11px] text-gray-400 font-bold mt-0.5">{gig.venue}</div>
+                        <div className="text-[10px] text-gray-600 italic mb-1">{gig.info}</div>
+                        <div className="flex gap-3 mt-1 text-[9px] text-blue-400 font-bold">
+                           <span className="flex items-center gap-0.5 cursor-pointer hover:text-white"><MapPin size={10}/> VIEW MAP</span>
+                           <span className="flex items-center gap-0.5 cursor-pointer hover:text-white"><Grid size={10}/> SEATING CHART</span>
+                        </div>
+                      </td>
+                      <td className="p-2 border-r border-[#333] font-bold text-gray-400 align-middle text-[11px]">{gig.city}</td>
+                      <td className="p-2 border-r border-[#333] font-mono text-[#00ff41] font-bold align-middle">{gig.price}</td>
+                      <td className="p-2 border-r border-[#333] text-center font-bold align-middle">
+                        {gig.status === 'SOLD OUT' ? <span className="text-red-500">0</span> : gig.status === 'CANCELLED' ? <span className="text-gray-600">-</span> : <span className="text-white">{gig.seats}</span>}
+                      </td>
+                      <td className="p-2 text-center align-middle">
+                        {gig.status === 'SOLD OUT' ? (
+                          <span className="text-red-500 font-black text-[10px] border-2 border-red-500 px-1 transform -rotate-12 inline-block opacity-80">SOLD OUT</span>
+                        ) : gig.status === 'CANCELLED' ? (
+                          <span className="text-gray-600 font-bold text-[10px] border border-gray-600 px-2 py-1">CANCELLED</span>
+                        ) : gig.status === 'COMPLETED' ? (
+                          <span className="text-gray-500 font-bold text-[10px]">CLOSED</span>
+                        ) : (
+                          <button className="bg-[#00ff41] text-black border border-[#00ff41] px-3 py-1 text-[10px] font-black hover:bg-white hover:border-white transition-colors flex items-center justify-center gap-1 mx-auto w-full">
+                            <Ticket size={10} strokeWidth={3}/> BUY
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+             </table>
+             
+             {/* Footer Legal */}
+             <div className="mt-6 border-t border-[#333] pt-2 flex flex-col gap-1">
+                <div className="flex gap-4 text-[10px] text-gray-500 font-bold underline">
+                   <span className="hover:text-white cursor-pointer">Privacy Policy</span>
+                   <span className="hover:text-white cursor-pointer">Terms of Use</span>
+                   <span className="hover:text-white cursor-pointer">Purchase Policy</span>
+                   <span className="hover:text-white cursor-pointer">Sell Tickets</span>
                 </div>
-              ))}
-           </div>
-           
-           <div className="mt-8 border-t border-[#333] pt-6 flex gap-4">
-              <div className="flex-1 bg-[#1a1a1a] p-4 border border-[#333]">
-                 <h3 className="text-white font-bold mb-2 flex items-center gap-2"><Ticket size={16} className="text-[#00ff41]"/> TICKET_STUBS.JPG</h3>
-                 <div className="h-32 bg-black flex items-center justify-center text-gray-600 text-xs font-mono">IMAGE_CORRUPTED</div>
-              </div>
-              <div className="flex-1 bg-[#1a1a1a] p-4 border border-[#333]">
-                 <h3 className="text-white font-bold mb-2">TOUR_RIDER.TXT</h3>
-                 <p className="font-mono text-xs text-gray-400 leading-relaxed">
-                    {'>'} 2 BOTTLES HENNESSY<br/>
-                    {'>'} 1 BOX DUTCH MASTERS<br/>
-                    {'>'} NO BROWN M&Ms<br/>
-                    {'>'} 1 PLAYSTATION 2
-                 </p>
-              </div>
+                <div className="text-[9px] text-gray-600 font-mono mt-2">
+                   * All times are Eastern Standard Time. Prices do not include service fees ($4.50) or facility charges.<br/>
+                   * Livewire Entertainment is not responsible for lost or stolen tickets.
+                </div>
+                <div className="mt-4 flex items-center gap-2 opacity-50">
+                   <div className="h-6 w-10 border border-gray-600 bg-black flex items-center justify-center text-[8px] font-bold text-gray-400 italic">VISA</div>
+                   <div className="h-6 w-10 border border-gray-600 bg-black flex items-center justify-center text-[8px] font-bold text-gray-400 italic">MC</div>
+                   <div className="h-6 w-10 border border-gray-600 bg-black flex items-center justify-center text-[8px] font-bold text-gray-400 italic">AMEX</div>
+                </div>
+             </div>
            </div>
         </div>
       </div>
@@ -749,216 +923,340 @@ const TourHistory = () => {
 
 // 6. STYLE ARCHIVE (Merch Store)
 const StyleArchive = () => {
-  const [activeCategory, setActiveCategory] = useState('ALL');
+  const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState('cart'); 
-  const [processing, setProcessing] = useState(false);
+  const [filters, setFilters] = useState({ category: 'All', sort: 'newest', search: '' });
+  const [showSeed, setShowSeed] = useState(false);
 
-  const merchItems = [
-    { id: 1, name: "LIVEWIRE FITTED", category: 'HEADWEAR', price: 45, era: '2004', stock: 3, image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&q=80', desc: 'WASHED COTTON / STRUCTURED' },
-    { id: 2, name: "VELOUR TRACK JKT", category: 'APPAREL', price: 120, era: '2003', stock: 0, image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=80', desc: 'DUST NAVY / CROPPED' },
-    { id: 3, name: "WHIP JERSEY 04", category: 'APPAREL', price: 85, era: '2004', stock: 12, image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=500&q=80', desc: 'OATMEAL / HEAVY MESH' },
-    { id: 4, name: "PUFFER VEST", category: 'APPAREL', price: 150, era: '2005', stock: 5, image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80', desc: 'CLAY / MATTE FINISH' },
-    { id: 5, name: "CARGO DENIM", category: 'APPAREL', price: 90, era: '2002', stock: 8, image: 'https://images.unsplash.com/photo-1542272617-08f086303294?w=500&q=80', desc: 'DISTRESSED / BAGGY FIT' },
-    { id: 6, name: "TOUR BANDANA", category: 'ACCESSORIES', price: 20, era: '2004', stock: 50, image: 'https://images.unsplash.com/photo-1629316075677-72782e379a41?w=500&q=80', desc: 'OLIVE / SILK SCREEN' }
+  // Fallback Data if Firebase Unavailable
+  const fallbackItems = [
+      { id: 'm1', name: "Livewire Official Tee - Black", category: "Shirts", price: 35, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80", desc: "Classic Logo Black" },
+      { id: 'm2', name: "Whip Montez Red Hook Hoodie", category: "Hoodies", price: 85, image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&q=80", desc: "Heavyweight Cotton" },
+      { id: 'm3', name: "Livewire Cargo Pants", category: "Pants", price: 95, image: "https://images.unsplash.com/photo-1517445312882-14f275936729?w=500&q=80", desc: "Tactical Pockets" },
+      { id: 'm4', name: "Whip Tour Backpack '04", category: "Bags", price: 60, image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80", desc: "Canvas Rucksack" },
+      { id: 'm5', name: "Graffiti Logo Joggers", category: "Pants", price: 70, image: "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=500&q=80", desc: "All-over Print" },
+      { id: 'm6', name: "Whip Montez Bandana Pack", category: "Accessories", price: 20, image: "https://images.unsplash.com/photo-1629316075677-72782e379a41?w=500&q=80", desc: "3 Colors" },
+      { id: 'm7', name: "Livewire Velour Track Top", category: "Hoodies", price: 110, image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=80", desc: "Navy Blue" },
+      { id: 'm8', name: "Whip Montez Snapback Hat", category: "Accessories", price: 30, image: "https://images.unsplash.com/photo-1577771761611-37f37ccb84db?w=500&q=80", desc: "Embroidered Logo" },
+      { id: 'm9', name: "Livewire 2004 Album Tee", category: "Shirts", price: 40, image: "https://images.unsplash.com/photo-1571542617696-6136d2c4760d?w=500&q=80", desc: "Album Art Print" },
+      { id: 'm10', name: "Red Hook Bomber Jacket", category: "Jackets", price: 150, image: "https://images.unsplash.com/photo-1551028038-0973a0e633d2?w=500&q=80", desc: "Heavy Satin Shell" },
+      { id: 'm11', name: "Montez Skull Beanie", category: "Accessories", price: 25, image: "https://images.unsplash.com/photo-1582236528760-496e5797f374?w=500&q=80", desc: "Winter Wear" },
+      { id: 'm12', name: "Livewire Utility Vest", category: "Jackets", price: 90, image: "https://images.unsplash.com/photo-1622479532585-cd278cc0486c?w=500&q=80", desc: "Multi-Pocket" },
+      { id: 'm13', name: "Whip Cropped Tee", category: "Shirts", price: 30, image: "https://images.unsplash.com/photo-1523359054-933e144a7065?w=500&q=80", desc: "Female Fit" },
+      { id: 'm14', name: "Montez Logo Socks", category: "Accessories", price: 15, image: "https://images.unsplash.com/photo-1606277636181-a95786f1f41b?w=500&q=80", desc: "Mid-Calf" },
+      { id: 'm15', name: "Digital Camo Hoodie", category: "Hoodies", price: 90, image: "https://images.unsplash.com/photo-1543163534-118e3810145f?w=500&q=80", desc: "Digital Print" },
+      { id: 'm16', name: "Signature Wristband Set", category: "Accessories", price: 25, image: "https://images.unsplash.com/photo-1529124430154-15c0e051c04d?w=500&q=80", desc: "Livewire x Montez" }
   ];
 
-  const addToCart = (item) => {
-    if (item.stock > 0) {
-      setCart([...cart, item]);
-      setIsCartOpen(true);
+  // Firestore Sync with Fallback
+  useEffect(() => {
+    if (!db) {
+        // Run in Offline/Demo Mode
+        setItems(fallbackItems);
+        return;
+    }
+    const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'merch'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setItems(data);
+      if (data.length === 0) setShowSeed(true);
+      else setShowSeed(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Filtering Logic
+  useEffect(() => {
+    let result = [...items];
+    
+    if (filters.category !== 'All') {
+      result = result.filter(item => item.category === filters.category);
+    }
+
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(item => 
+        item.name.toLowerCase().includes(q) || 
+        item.category.toLowerCase().includes(q)
+      );
+    }
+
+    if (filters.sort === 'priceAsc') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (filters.sort === 'priceDesc') {
+      result.sort((a, b) => b.price - a.price);
+    }
+
+    setFilteredItems(result);
+  }, [items, filters]);
+
+  const seedData = async () => {
+    if (!db) return;
+    const seedItems = [
+      { name: "Livewire Official Tee", category: "Shirts", price: 35, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80", desc: "Classic Logo Black" },
+      { name: "Red Hook Hoodie", category: "Hoodies", price: 85, image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&q=80", desc: "Heavyweight Cotton" },
+      { name: "Whip Cargo Pants", category: "Pants", price: 95, image: "https://images.unsplash.com/photo-1517445312882-14f275936729?w=500&q=80", desc: "Tactical Pockets" },
+      { name: "Tour Backpack 04", category: "Bags", price: 60, image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80", desc: "Canvas Rucksack" },
+      { name: "Grafitti Joggers", category: "Pants", price: 70, image: "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=500&q=80", desc: "All-over Print" },
+      { name: "Bandana Pack", category: "Accessories", price: 20, image: "https://images.unsplash.com/photo-1629316075677-72782e379a41?w=500&q=80", desc: "3 Colors" },
+      { name: "Velour Track Top", category: "Hoodies", price: 110, image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=80", desc: "Navy Blue" },
+      { name: "Whip Montez Snapback Hat", category: "Accessories", price: 30, image: "https://images.unsplash.com/photo-1577771761611-37f37ccb84db?w=500&q=80", desc: "Embroidered Logo" },
+      { name: "Livewire 2004 Album Tee", category: "Shirts", price: 40, image: "https://images.unsplash.com/photo-1571542617696-6136d2c4760d?w=500&q=80", desc: "Album Art Print" },
+      { name: "Red Hook Bomber Jacket", category: "Jackets", price: 150, image: "https://images.unsplash.com/photo-1551028038-0973a0e633d2?w=500&q=80", desc: "Heavy Satin Shell" },
+      { name: "Montez Skull Beanie", category: "Accessories", price: 25, image: "https://images.unsplash.com/photo-1582236528760-496e5797f374?w=500&q=80", desc: "Winter Wear" },
+      { name: "Livewire Utility Vest", category: "Jackets", price: 90, image: "https://images.unsplash.com/photo-1622479532585-cd278cc0486c?w=500&q=80", desc: "Multi-Pocket" },
+      { name: "Whip Cropped Tee", category: "Shirts", price: 30, image: "https://images.unsplash.com/photo-1523359054-933e144a7065?w=500&q=80", desc: "Female Fit" },
+      { name: "Montez Logo Socks", category: "Accessories", price: 15, image: "https://images.unsplash.com/photo-1606277636181-a95786f1f41b?w=500&q=80", desc: "Mid-Calf" },
+      { name: "Digital Camo Hoodie", category: "Hoodies", price: 90, image: "https://images.unsplash.com/photo-1543163534-118e3810145f?w=500&q=80", desc: "Digital Print" },
+      { name: "Signature Wristband Set", category: "Accessories", price: 25, image: "https://images.unsplash.com/photo-1529124430154-15c0e051c04d?w=500&q=80", desc: "Livewire x Montez" }
+    ];
+
+    seedItems.forEach(async (item) => {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'merch'), item);
+    });
+  };
+
+  const handleSaveItem = async (e) => {
+    e.preventDefault();
+    const itemData = {
+      name: e.target.name.value,
+      price: Number(e.target.price.value),
+      category: e.target.category.value,
+      image: e.target.image.value,
+      desc: e.target.desc.value
+    };
+
+    if (!db) {
+        // Local Update in Demo Mode
+        if (editingItem.id) {
+            setItems(items.map(i => i.id === editingItem.id ? { ...i, ...itemData } : i));
+        } else {
+            setItems([...items, { id: Date.now().toString(), ...itemData }]);
+        }
+        setEditingItem(null);
+        return;
+    }
+
+    if (editingItem.id) {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'merch', editingItem.id), itemData);
+    } else {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'merch'), itemData);
+    }
+    setEditingItem(null);
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm("Delete this item?")) {
+        if (!db) {
+            setItems(items.filter(i => i.id !== id));
+            return;
+        }
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'merch', id));
     }
   };
 
-  const cartTotal = cart.reduce((acc, item) => acc + item.price, 0);
-
-  const handleCheckout = () => {
-    setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      setCheckoutStep('success');
-      setCart([]);
-    }, 3000);
-  };
-
-  const filteredItems = activeCategory === 'ALL' ? merchItems : merchItems.filter(item => item.category === activeCategory);
-
   return (
-    <div className="h-full flex flex-col bg-[#111] text-[#ccc] relative">
-      <div className="min-h-[80px] border-b border-[#333] flex flex-col md:flex-row md:items-center justify-between px-6 py-4 bg-[#0a0a0a]">
-        <h2 className="text-4xl font-black uppercase tracking-tighter text-white leading-none mb-4 md:mb-0">Y2K<br/>SEASON</h2>
-        <div className="flex gap-6 text-[10px] font-bold tracking-[0.2em] uppercase">
-          {['ALL', 'APPAREL', 'HEADWEAR', 'ACCESSORIES'].map(cat => (
-            <button 
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`hover:text-white transition-colors ${activeCategory === cat ? 'text-white line-through decoration-[#00ff41] decoration-2' : 'text-gray-600'}`}
-            >
-              {cat}
-            </button>
-          ))}
+    <div className="h-full flex flex-col bg-[#050505] text-gray-300 relative font-sans">
+      
+      {/* HEADER */}
+      <div className="h-20 border-b border-[#333] flex items-center justify-between px-6 bg-[#111] z-20">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-white flex items-center gap-2">
+             <ShoppingBag size={24} className="text-[#00ff41]"/>
+             STORE_FRONT
+          </h2>
+          <div className="text-[10px] text-[#00ff41] font-mono tracking-widest uppercase">LIVEWIRE x WHIP MONTEZ OFFICIAL MERCH</div>
         </div>
-        <div 
-          onClick={() => setIsCartOpen(true)}
-          className="hidden md:flex items-center gap-2 font-bold text-xs border border-[#333] px-4 py-2 hover:bg-[#00ff41] hover:text-black hover:border-[#00ff41] transition-all cursor-pointer uppercase tracking-widest"
-        >
-          <ShoppingBag size={14}/> <span>CART ({cart.length})</span>
+        
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2 bg-[#222] px-3 py-1 rounded-full border border-[#333]">
+            <Search size={14} />
+            <input 
+              className="bg-transparent outline-none text-xs w-32 text-white placeholder-gray-500"
+              placeholder="Search styles..."
+              value={filters.search}
+              onChange={(e) => setFilters({...filters, search: e.target.value})}
+            />
+          </div>
+          <div onClick={() => setIsCartOpen(true)} className="relative cursor-pointer hover:text-[#00ff41] transition-colors">
+            <ShoppingBag size={20}/>
+            {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-[#00ff41] text-black text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cart.length}</span>}
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#333]">
-          {filteredItems.map(item => (
-            <div key={item.id} className="group relative bg-[#0a0a0a] aspect-[3/4] flex flex-col cursor-pointer overflow-hidden">
-              <div className="absolute inset-0">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover filter grayscale contrast-125 brightness-75 group-hover:scale-105 group-hover:brightness-100 transition-all duration-700" />
-                
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none mix-blend-overlay opacity-80">
-                  <div className="transform -rotate-6">
-                    <h1 className="font-black text-6xl text-white tracking-tighter opacity-90 leading-none">
-                      WHIP<br/>MNTZ
-                    </h1>
-                  </div>
-                </div>
-
-                {item.stock === 0 && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm z-20">
-                    <span className="text-red-500 font-bold text-xl tracking-[0.5em] border-2 border-red-500 px-6 py-2 uppercase">Sold Out</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="absolute bottom-0 left-0 w-full p-6 z-10 bg-gradient-to-t from-black via-black/80 to-transparent pt-12">
-                <div className="flex justify-between items-end border-b border-white/20 pb-2 mb-2">
-                  <div>
-                    <h3 className="font-bold text-white text-lg uppercase leading-none tracking-tight">{item.name}</h3>
-                    <p className="text-[#00ff41] text-[10px] font-mono mt-1 uppercase tracking-wider">{item.desc}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-white font-mono font-bold text-xl">${item.price}</div>
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => addToCart(item)}
-                  disabled={item.stock === 0}
-                  className="w-full text-xs font-bold uppercase tracking-[0.2em] py-3 hover:bg-[#00ff41] hover:text-black transition-colors text-gray-400 border border-transparent hover:border-[#00ff41] flex justify-between px-2 items-center"
+      {/* MAIN */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* SIDEBAR */}
+        <div className="w-64 bg-[#0a0a0a] border-r border-[#333] p-6 hidden md:flex flex-col gap-8 overflow-y-auto">
+          <div>
+            <h3 className="text-xs font-bold text-[#00ff41] mb-4 uppercase tracking-widest flex items-center gap-2"><Filter size={12}/> Categories</h3>
+            <div className="space-y-2">
+              {['All', 'Shirts', 'Pants', 'Hoodies', 'Bags', 'Accessories', 'Jackets'].map(cat => (
+                <div 
+                  key={cat} 
+                  onClick={() => setFilters({...filters, category: cat})}
+                  className={`cursor-pointer text-sm hover:text-white transition-colors flex justify-between items-center ${filters.category === cat ? 'text-white font-bold' : 'text-gray-500'}`}
                 >
-                  <span>{item.stock === 0 ? "OUT OF STOCK" : "ADD TO CART"}</span>
-                  {item.stock > 0 && <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>}
-                </button>
-              </div>
-              
-              {item.stock > 0 && item.stock < 5 && (
-                <div className="absolute top-4 right-4 bg-red-600 text-white px-2 py-1 text-[10px] font-bold tracking-widest uppercase z-20 animate-pulse">
-                  Low Stock
+                  {cat}
+                  {filters.category === cat && <div className="w-1.5 h-1.5 bg-[#00ff41] rounded-full"></div>}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold text-[#00ff41] mb-4 uppercase tracking-widest">Sort By</h3>
+            <select 
+              value={filters.sort}
+              onChange={(e) => setFilters({...filters, sort: e.target.value})}
+              className="w-full bg-[#111] border border-[#333] text-xs text-white p-2 outline-none focus:border-[#00ff41]"
+            >
+              <option value="newest">Newest Arrivals</option>
+              <option value="priceAsc">Price: Low to High</option>
+              <option value="priceDesc">Price: High to Low</option>
+            </select>
+          </div>
+
+          <div className="mt-auto border-t border-[#333] pt-4">
+             <button 
+               onClick={() => setIsAdmin(!isAdmin)}
+               className={`w-full py-2 text-[10px] font-bold tracking-widest uppercase border ${isAdmin ? 'bg-[#00ff41] text-black border-[#00ff41]' : 'border-[#333] text-gray-600 hover:border-gray-400'}`}
+             >
+               {isAdmin ? 'ADMIN MODE: ON' : 'STAFF LOGIN'}
+             </button>
+             
+             {isAdmin && showSeed && (
+               <button 
+                 onClick={seedData} 
+                 className="w-full mt-2 py-2 text-[10px] font-bold tracking-widest uppercase bg-blue-600 text-white hover:bg-blue-500"
+               >
+                 SEED DEFAULT INVENTORY
+               </button>
+             )}
+          </div>
         </div>
-      </div>
 
-      {isCartOpen && (
-        <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex justify-end">
-          <div className="w-full max-w-md h-full bg-[#0a0a0a] border-l border-[#333] flex flex-col shadow-2xl">
-            <div className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#111]">
-              <h2 className="text-xl font-black uppercase tracking-tighter text-white">
-                {checkoutStep === 'cart' ? 'YOUR_CART' : checkoutStep === 'shipping' ? 'SHIPPING_INFO' : checkoutStep === 'payment' ? 'SECURE_PAYMENT' : 'RECEIPT'}
-              </h2>
-              <button onClick={() => {setIsCartOpen(false); setCheckoutStep('cart');}}><X size={20} className="text-white hover:text-[#00ff41]"/></button>
+        {/* GRID */}
+        <div className="flex-1 overflow-y-auto p-6 bg-[#0e0e0e]">
+          
+          {isAdmin && (
+            <div 
+              onClick={() => setEditingItem({})}
+              className="mb-6 p-4 border-2 border-dashed border-[#333] flex items-center justify-center gap-2 cursor-pointer hover:border-[#00ff41] hover:text-[#00ff41] transition-all text-gray-500"
+            >
+              <Plus size={20}/> <span className="font-bold text-sm uppercase">Add New Product</span>
             </div>
+          )}
 
-            <div className="flex-1 overflow-y-auto p-6 relative">
-              {checkoutStep === 'cart' && (
-                <>
-                  {cart.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-gray-500 font-mono text-xs">CART IS EMPTY</div>
-                  ) : (
-                    <div className="space-y-4">
-                      {cart.map((item, idx) => (
-                        <div key={idx} className="flex gap-4 border border-[#333] p-2 bg-[#111]">
-                          <div className="w-16 h-16 bg-[#222]">
-                            <img src={item.image} className="w-full h-full object-cover grayscale"/>
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-white font-bold text-sm uppercase">{item.name}</div>
-                            <div className="text-[#00ff41] font-mono text-xs">${item.price}</div>
-                          </div>
-                          <button 
-                            onClick={() => setCart(cart.filter((_, i) => i !== idx))}
-                            className="text-gray-500 hover:text-white"
-                          ><X size={14}/></button>
-                        </div>
-                      ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredItems.map(item => (
+              <div key={item.id} className="group relative bg-[#111] border border-[#222] hover:border-[#00ff41]/50 transition-all duration-300 flex flex-col">
+                <div className="aspect-[3/4] overflow-hidden relative bg-[#050505]">
+                  <img src={item.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"/>
+                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black to-transparent">
+                    <button 
+                      onClick={() => { setCart([...cart, item]); setIsCartOpen(true); }}
+                      className="w-full bg-[#00ff41] text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-white transition-colors shadow-lg"
+                    >
+                      Add To Cart
+                    </button>
+                  </div>
+                  {isAdmin && (
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <button onClick={() => setEditingItem(item)} className="p-2 bg-blue-600 text-white rounded hover:bg-blue-500"><Edit2 size={12}/></button>
+                      <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-600 text-white rounded hover:bg-red-500"><Trash2 size={12}/></button>
                     </div>
                   )}
-                </>
-              )}
-
-              {(checkoutStep === 'shipping' || checkoutStep === 'payment') && (
-                <div className="space-y-4 font-mono text-xs">
-                  {checkoutStep === 'shipping' && (
-                    <>
-                      <input type="text" placeholder="FULL NAME" className="w-full bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                      <input type="text" placeholder="ADDRESS LINE 1" className="w-full bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                      <div className="flex gap-2">
-                        <input type="text" placeholder="CITY" className="w-full bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                        <input type="text" placeholder="ZIP" className="w-1/3 bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                      </div>
-                    </>
-                  )}
-                  {checkoutStep === 'payment' && (
-                    <>
-                      <div className="flex items-center gap-2 mb-4 text-[#00ff41]">
-                        <Lock size={14} /> SECURE TERMINAL ENCRYPTED
-                      </div>
-                      <input type="text" placeholder="CARD NUMBER" className="w-full bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                      <div className="flex gap-2">
-                        <input type="text" placeholder="MM/YY" className="w-1/2 bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                        <input type="text" placeholder="CVC" className="w-1/2 bg-[#111] border border-[#333] p-3 text-white outline-none focus:border-[#00ff41]" />
-                      </div>
-                    </>
-                  )}
                 </div>
-              )}
-
-              {checkoutStep === 'success' && (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
-                  <CheckCircle size={64} className="text-[#00ff41]" />
-                  <h3 className="text-2xl font-black uppercase text-white">ORDER CONFIRMED</h3>
-                  <p className="text-gray-500 font-mono text-xs max-w-xs">
-                    CONFIRMATION SENT TO EMAIL.<br/>
-                    ESTIMATED SHIPPING: 2004
-                  </p>
-                  <button onClick={() => {setIsCartOpen(false); setCheckoutStep('cart');}} className="text-[#00ff41] underline font-mono text-xs mt-4">CLOSE RECEIPT</button>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[10px] text-[#00ff41] font-mono uppercase mb-1">{item.category}</div>
+                    <h3 className="text-white font-bold text-sm uppercase leading-tight mb-1">{item.name}</h3>
+                    <p className="text-gray-500 text-xs">{item.desc}</p>
+                  </div>
+                  <div className="mt-4 font-mono text-white text-lg">${item.price}</div>
                 </div>
-              )}
-
-              {processing && (
-                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-50">
-                  <div className="w-12 h-12 border-4 border-[#00ff41] border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <div className="text-[#00ff41] font-mono text-xs animate-pulse">PROCESSING TRANSACTION...</div>
-                </div>
-              )}
-            </div>
-
-            {checkoutStep !== 'success' && (
-              <div className="p-6 border-t border-[#333] bg-[#111]">
-                <div className="flex justify-between items-end mb-4">
-                  <span className="text-gray-500 font-mono text-xs">TOTAL</span>
-                  <span className="text-white font-bold text-xl font-mono">${cartTotal}</span>
-                </div>
-                <button 
-                  onClick={() => checkoutStep === 'cart' ? setCheckoutStep('shipping') : checkoutStep === 'shipping' ? setCheckoutStep('payment') : handleCheckout()}
-                  className="w-full bg-[#00ff41] text-black py-3 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {checkoutStep === 'payment' ? 'PAY NOW' : 'CONTINUE'}
-                </button>
               </div>
-            )}
+            ))}
           </div>
+        </div>
+      </div>
+
+      {/* CART */}
+      {isCartOpen && (
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
+          <div className="w-full max-w-md bg-[#111] border-l border-[#333] shadow-2xl flex flex-col h-full animate-slide-in-right">
+            <div className="h-16 border-b border-[#333] flex items-center justify-between px-6">
+              <h2 className="text-xl font-black uppercase tracking-tighter text-white">YOUR CART ({cart.length})</h2>
+              <button onClick={() => setIsCartOpen(false)}><X size={20} className="text-gray-400 hover:text-white"/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {cart.map((item, i) => (
+                <div key={i} className="flex gap-4 border border-[#333] p-2 bg-[#0a0a0a]">
+                  <img src={item.image} className="w-16 h-16 object-cover bg-[#222]"/>
+                  <div className="flex-1">
+                    <div className="text-white font-bold text-sm uppercase">{item.name}</div>
+                    <div className="text-[#00ff41] font-mono text-xs">${item.price}</div>
+                  </div>
+                  <button onClick={() => setCart(cart.filter((_, idx) => idx !== i))} className="text-gray-500 hover:text-red-500"><X size={14}/></button>
+                </div>
+              ))}
+              {cart.length === 0 && <div className="text-center text-gray-600 mt-10">Cart is empty.</div>}
+            </div>
+            <div className="p-6 border-t border-[#333]">
+              <div className="flex justify-between items-end mb-4">
+                <span className="text-gray-500 text-xs">SUBTOTAL</span>
+                <span className="text-white font-bold text-xl">${cart.reduce((a, b) => a + b.price, 0)}</span>
+              </div>
+              <button className="w-full bg-[#00ff41] text-black py-3 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors">CHECKOUT</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {editingItem && (
+        <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+          <form onSubmit={handleSaveItem} className="w-full max-w-lg bg-[#111] border border-[#333] p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-6 uppercase border-b border-[#333] pb-2">
+              {editingItem.id ? 'Edit Product' : 'Add New Product'}
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Product Name</label>
+                <input name="name" defaultValue={editingItem.name} className="w-full bg-black border border-[#333] text-white p-2 outline-none focus:border-[#00ff41]" required/>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Price ($)</label>
+                  <input name="price" type="number" defaultValue={editingItem.price} className="w-full bg-black border border-[#333] text-white p-2 outline-none focus:border-[#00ff41]" required/>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Category</label>
+                  <select name="category" defaultValue={editingItem.category || 'Shirts'} className="w-full bg-black border border-[#333] text-white p-2 outline-none focus:border-[#00ff41]">
+                    {['Shirts', 'Pants', 'Hoodies', 'Bags', 'Accessories', 'Jackets'].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Image URL</label>
+                <input name="image" defaultValue={editingItem.image} className="w-full bg-black border border-[#333] text-white p-2 outline-none focus:border-[#00ff41]" required/>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Description</label>
+                <input name="desc" defaultValue={editingItem.desc} className="w-full bg-black border border-[#333] text-white p-2 outline-none focus:border-[#00ff41]"/>
+              </div>
+            </div>
+            <div className="flex gap-4 mt-8">
+              <button type="button" onClick={() => setEditingItem(null)} className="flex-1 border border-[#333] text-gray-400 py-2 hover:bg-[#222]">CANCEL</button>
+              <button type="submit" className="flex-1 bg-[#00ff41] text-black font-bold py-2 hover:bg-white">SAVE CHANGES</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
@@ -985,32 +1283,32 @@ const Ghostwriter = () => {
     <div className="h-full w-full relative overflow-hidden p-6 flex flex-col items-center justify-center">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      <div className="relative z-20 w-full max-w-3xl border border-[#00ff41] bg-black/90 p-1 shadow-[0_0_30px_rgba(0,255,65,0.1)]">
-        <div className="bg-[#00ff41] text-black px-2 py-1 font-bold flex justify-between items-center mb-2">
+      <div className="relative z-20 w-full max-w-3xl border border-cyan-600 bg-[#050505]/90 p-1 shadow-[0_0_30px_rgba(0,180,255,0.4)]">
+        <div className="bg-cyan-600 text-black px-2 py-1 font-bold flex justify-between items-center mb-2">
           <span>LYRIC_RECOVERY_TOOL.EXE</span>
           <div className="flex gap-1"><div className="w-3 h-3 bg-black"></div></div>
         </div>
         <div className="p-4 flex flex-col gap-4">
-          <div className="text-[#00ff41] font-mono text-sm mb-2">{'>'} SYSTEM ALERT: CORRUPTED LYRIC FILES DETECTED.<br/>{'>'} ENTER KEYWORDS TO ATTEMPT DATA RECOVERY...</div>
+          <div className="text-cyan-400 font-mono text-sm mb-2">{'>'} SYSTEM ALERT: CORRUPTED LYRIC FILES DETECTED.<br/>{'>'} ENTER KEYWORDS TO ATTEMPT DATA RECOVERY...</div>
           <div className="flex gap-2">
             <input 
               type="text" 
               value={prompt} 
               onChange={(e) => setPrompt(e.target.value)} 
               placeholder="ENTER TOPIC (e.g., 'Summertime in Brooklyn', 'Haters', 'Money')" 
-              className="flex-1 bg-black border border-[#333] text-white p-2 font-mono outline-none focus:border-[#00ff41]" 
+              className="flex-1 bg-black border border-cyan-800 text-white p-2 font-mono outline-none focus:border-cyan-400" 
               onKeyPress={(e) => e.key === 'Enter' && handleGenerate()} 
             />
             <button 
               onClick={handleGenerate} 
               disabled={loading} 
-              className="bg-[#00ff41] text-black px-4 py-2 font-bold font-mono hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="bg-cyan-600 text-black px-4 py-2 font-bold font-mono hover:bg-cyan-400 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {loading ? "RECOVERING..." : <span>INITIATE <Sparkles className="inline w-4 h-4"/></span>}
             </button>
           </div>
-          <div className="min-h-[200px] border border-[#333] bg-[#050505] p-4 font-mono text-sm md:text-base leading-relaxed overflow-y-auto max-h-[400px]">
-            {loading && <div className="text-[#00ff41] animate-pulse">{'>'} SCANNING SECTORS...<br/>{'>'} DECRYPTING FLOW...<br/>{'>'} ASSEMBLING BARS...</div>}
+          <div className="min-h-[200px] border border-cyan-800 bg-[#000000] p-4 font-mono text-sm md:text-base leading-relaxed overflow-y-auto max-h-[400px]">
+            {loading && <div className="text-cyan-400 animate-pulse">{'>'} SCANNING SECTORS...<br/>{'>'} DECRYPTING FLOW...<br/>{'>'} ASSEMBLING BARS...</div>}
             {!loading && lyrics && <div className="text-white whitespace-pre-line typing-cursor">{lyrics}</div>}
             {!loading && !lyrics && <div className="text-gray-600 italic">// WAITING FOR INPUT //</div>}
           </div>
@@ -1020,154 +1318,277 @@ const Ghostwriter = () => {
   );
 };
 
-// 8. COMMUNITY HUB (The Block & Rosetta Stone)
+// 8. COMMUNITY HUB (The Block - RESTORED TO GREEN/BLACK OS STYLE)
 const CommunityHub = ({ setSection }) => {
-  const [activeTab, setActiveTab] = useState('forum'); // 'forum' | 'translator'
-  
-  // Translator State
-  const [transInput, setTransInput] = useState("");
-  const [transOutput, setTransOutput] = useState("");
-  const [transLoading, setTransLoading] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [newPost, setNewPost] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [showMediaInput, setShowMediaInput] = useState(false);
+  const [user, setUser] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
 
-  const posts = [
-    { id: 1, user: "RedHookFinest", date: "10/22/04 11:42 PM", content: "Just saw Whip at the bodega on Columbia. She said the album drops next week! 🔥", type: 'text', likes: 24, replies: 5 },
-    { id: 2, user: "LivewireFan_88", date: "10/21/04 04:20 PM", content: "EXCLUSIVE FOOTAGE: Whip freestyling outside the studio.", type: 'video', likes: 102, replies: 12 },
-    { id: 3, user: "BklynZoo_99", date: "10/20/04 09:15 AM", content: "Who got that new mixtape? I need a copy asap.", type: 'text', likes: 8, replies: 2 },
+  // Demo Data for Offline Mode
+  const demoPosts = [
+      { id: '1', user: "User_4821", content: "Just heard the new leaked track... Montez is next up for real.", likes: 12, replies: [], createdAt: { seconds: Date.now() / 1000 } },
+      { id: '2', user: "BK_Finest", content: "Anyone going to the show at Rec Center tonight?", likes: 5, replies: [{ user: "User_9921", text: "Already got my tickets", createdAt: Date.now() }], createdAt: { seconds: (Date.now() - 3600000) / 1000 } },
+      { id: '3', user: "Livewire_Fan", content: "Red Hook Diaries is a classic. No skips.", likes: 24, replies: [], createdAt: { seconds: (Date.now() - 86400000) / 1000 } }
   ];
 
-  const handleTranslate = async () => {
-    if (!transInput.trim()) return;
-    setTransLoading(true);
-    setTransOutput("");
+  useEffect(() => {
+    if (!db || !auth) {
+        // Offline Mode Initialization
+        setUser({ uid: "demo-user", isAnonymous: true });
+        setPosts(demoPosts);
+        return;
+    }
+    const unsubAuth = onAuthStateChanged(auth, setUser);
+    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'community_posts'), orderBy('createdAt', 'desc'));
+    const unsubData = onSnapshot(q, (snapshot) => {
+      setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => { unsubAuth(); unsubData(); };
+  }, []);
+
+  const handlePost = async () => {
+    if ((!newPost.trim() && !mediaUrl.trim())) return;
     
-    const systemPrompt = "You are a slang translator. Translate the given modern English text into authentic 2004 New York City / Red Hook street slang. Use terms like 'son', 'dun', 'mad', 'brick', 'deadass', 'tight', 'guap', 'whip', 'crib'. Keep it short and punchy.";
-    const result = await callGemini(transInput, systemPrompt);
+    // Determine post type
+    let type = 'text';
+    if (mediaUrl) {
+        if (mediaUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null) type = 'image';
+        else if (mediaUrl.match(/\.(mp4|webm)$/i) != null) type = 'video';
+        else if (mediaUrl.includes('tiktok.com') || mediaUrl.includes('youtube.com/shorts')) type = 'vertical_video';
+        else type = 'link'; 
+    }
+
+    const postData = {
+      user: user && !user.isAnonymous ? `User_${user.uid.slice(0,4)}` : "Anon_Guest",
+      content: newPost,
+      mediaUrl: mediaUrl,
+      mediaType: type,
+      likes: 0,
+      replies: [],
+      createdAt: serverTimestamp(),
+    };
+
+    if (!db) {
+        // Offline Post
+        setPosts([{ id: Date.now().toString(), ...postData, createdAt: { seconds: Date.now() / 1000 } }, ...posts]);
+    } else {
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'community_posts'), postData);
+    }
+
+    setNewPost("");
+    setMediaUrl("");
+    setShowMediaInput(false);
+  };
+
+  const handleLike = async (postId, currentLikes) => {
+    if (!db) {
+        setPosts(posts.map(p => p.id === postId ? { ...p, likes: (p.likes || 0) + 1 } : p));
+        return;
+    }
+    const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'community_posts', postId);
+    await updateDoc(postRef, { likes: (currentLikes || 0) + 1 });
+  };
+
+  const handleReply = async (postId) => {
+    if (!replyText.trim()) return;
     
-    setTransOutput(result);
-    setTransLoading(false);
+    const newComment = {
+        user: user && !user.isAnonymous ? `User_${user.uid.slice(0,4)}` : "Anon_Guest",
+        text: replyText,
+        createdAt: Date.now()
+    };
+
+    if (!db) {
+         setPosts(posts.map(p => p.id === postId ? { ...p, replies: [...(p.replies || []), newComment] } : p));
+    } else {
+        const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'community_posts', postId);
+        await updateDoc(postRef, { 
+            replies: arrayUnion(newComment) 
+        });
+    }
+    setReplyingTo(null);
+    setReplyText("");
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0a0a0a] relative overflow-hidden">
-      <div className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#111] shrink-0">
-        <div>
-          <h2 className="text-xl font-black chrome-text tracking-tight">THE_BLOCK // COMMUNITY</h2>
-          <div className="flex gap-4 mt-1">
-             <button 
-               onClick={() => setActiveTab('forum')}
-               className={`text-[10px] font-mono font-bold uppercase tracking-wider hover:text-[#00ff41] transition-colors ${activeTab === 'forum' ? 'text-[#00ff41] underline underline-offset-4' : 'text-gray-500'}`}
-             >
-               FORUM.EXE
-             </button>
-             <button 
-               onClick={() => setActiveTab('translator')}
-               className={`text-[10px] font-mono font-bold uppercase tracking-wider hover:text-[#00ff41] transition-colors ${activeTab === 'translator' ? 'text-[#00ff41] underline underline-offset-4' : 'text-gray-500'}`}
-             >
-               ROSETTA_STONE_TOOL ✨
-             </button>
-          </div>
+    <div className="h-full flex flex-col relative overflow-hidden bg-[#0a0a0a] font-mono">
+      <BackgroundCarousel images={[]} />
+      <div className="absolute inset-0 bg-black/80 z-0 pointer-events-none"></div>
+      
+      {/* Header - Terminal Style */}
+      <div className="relative z-10 h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#111]">
+        <div className="flex items-center gap-3">
+           <Users size={20} className="text-[#00ff41]" />
+           <h2 className="text-xl font-bold text-white tracking-widest uppercase">THE_BLOCK<span className="text-[#00ff41] animate-pulse">_FEED</span></h2>
         </div>
         <button 
           onClick={() => setSection('chat')}
-          className="bg-[#00ff41] text-black px-4 py-2 font-bold font-mono text-xs flex items-center gap-2 hover:bg-white transition-colors"
+          className="bg-[#00ff41]/10 border border-[#00ff41] text-[#00ff41] px-4 py-1 font-bold text-xs flex items-center gap-2 hover:bg-[#00ff41] hover:text-black transition-colors"
         >
-          <MessageSquare size={14}/> START CHAT WITH WHIP
+          <MessageSquare size={14}/> PRIVATE MSG
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full">
-        
-        {activeTab === 'forum' ? (
-          <div className="space-y-6">
-            <div className="border border-[#333] bg-[#111] p-4 flex gap-4">
-              <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-gray-500 text-xs font-bold">USER</div>
-              <div className="flex-1">
-                <textarea placeholder="Post to the block..." className="w-full bg-transparent text-white text-sm outline-none resize-none h-12 font-mono"></textarea>
-                <div className="flex justify-between items-center mt-2 border-t border-[#333] pt-2">
-                  <div className="flex gap-2 text-gray-500">
-                    <Video size={16} className="cursor-pointer hover:text-white"/>
-                    <Share2 size={16} className="cursor-pointer hover:text-white"/>
-                  </div>
-                  <button className="text-[#00ff41] text-xs font-bold hover:underline">POST MESSAGE</button>
-                </div>
-              </div>
-            </div>
+      <div className="relative z-10 flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full custom-scrollbar">
+        <div className="space-y-6">
+          
+          {/* Input Area - Terminal Style */}
+          <div className="border border-[#333] bg-[#050505] p-4 relative">
+             <div className="text-[#00ff41] text-xs mb-2">{'>'} INITIATE BROADCAST:</div>
+             <textarea 
+               value={newPost}
+               onChange={(e) => setNewPost(e.target.value)}
+               placeholder="Write to the block..." 
+               className="w-full bg-[#111] border border-[#333] text-white text-sm p-3 outline-none resize-none h-20 font-mono focus:border-[#00ff41] transition-colors mb-2"
+             ></textarea>
+             
+             {showMediaInput && (
+                 <div className="flex items-center gap-2 mb-2 bg-[#111] p-1 border border-[#333]">
+                     <LinkIcon size={14} className="text-[#00ff41]"/>
+                     <input 
+                         type="text" 
+                         value={mediaUrl}
+                         onChange={(e) => setMediaUrl(e.target.value)}
+                         placeholder="MEDIA_URL (IMG/VIDEO)..."
+                         className="flex-1 bg-transparent text-white text-xs outline-none font-mono"
+                     />
+                 </div>
+             )}
+             
+             <div className="flex justify-between items-center">
+               <div className="flex gap-4 text-gray-500">
+                 <button onClick={() => setShowMediaInput(!showMediaInput)} className={`hover:text-[#00ff41] transition-colors ${showMediaInput ? 'text-[#00ff41]' : ''}`}><ImageIcon size={16}/></button>
+                 <button onClick={() => setShowMediaInput(!showMediaInput)} className="hover:text-[#00ff41] transition-colors"><Video size={16}/></button>
+               </div>
+               <button 
+                 onClick={handlePost}
+                 className="bg-[#00ff41] text-black px-6 py-1 text-xs font-black hover:bg-white transition-colors uppercase"
+               >
+                 TRANSMIT
+               </button>
+             </div>
+          </div>
 
-            {posts.map(post => (
-              <div key={post.id} className="border border-[#333] bg-[#050505] p-4 hover:border-gray-600 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-900 to-purple-900 rounded-full border border-gray-600"></div>
-                    <div>
-                      <div className="text-[#00ff41] font-bold text-xs">{post.user}</div>
-                      <div className="text-gray-600 text-[10px] font-mono">{post.date}</div>
+          {/* Posts Feed - Terminal Style */}
+          {posts.map(post => (
+            <div key={post.id} className="border border-[#333] bg-[#111] p-4 hover:border-[#00ff41]/50 transition-colors relative group">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#222] border border-[#333] flex items-center justify-center">
+                     <span className="text-[#00ff41] font-bold text-xs">{post.user.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <div className="text-white font-bold text-xs uppercase flex items-center gap-2">
+                      {post.user}
+                      <span className="text-[9px] bg-[#00ff41]/10 text-[#00ff41] px-1 border border-[#00ff41]/30">CITIZEN</span>
+                    </div>
+                    <div className="text-gray-600 text-[10px] mt-0.5 font-mono">
+                      {post.createdAt?.seconds ? new Date(post.createdAt.seconds * 1000).toLocaleString() : 'JUST NOW'}
                     </div>
                   </div>
                 </div>
-                <div className="text-gray-300 text-sm mb-4 font-sans leading-relaxed">
-                  {post.content}
-                </div>
-                {post.type === 'video' && (
-                  <div className="bg-black aspect-video mb-4 flex items-center justify-center border border-[#333] relative group cursor-pointer">
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-                    <Play size={40} className="text-white opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all"/>
-                  </div>
-                )}
-                <div className="flex gap-6 text-xs text-gray-500 font-mono border-t border-[#222] pt-2">
-                  <span className="flex items-center gap-1 cursor-pointer hover:text-[#00ff41]"><Heart size={12}/> {post.likes} LIKES</span>
-                  <span className="flex items-center gap-1 cursor-pointer hover:text-[#00ff41]"><MessageCircle size={12}/> {post.replies} REPLIES</span>
-                </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center">
-             <div className="w-full max-w-2xl border-2 border-[#00ff41] bg-[#111] p-1 shadow-[0_0_30px_rgba(0,255,65,0.1)]">
-                <div className="bg-[#00ff41] text-black px-3 py-2 font-bold flex justify-between items-center mb-1">
-                   <span className="flex items-center gap-2"><BookOpen size={16}/> SLANG_TRANSLATOR.EXE</span>
-                   <div className="flex gap-1"><div className="w-3 h-3 bg-black"></div></div>
-                </div>
-                
-                <div className="p-6 grid gap-6">
-                   <div className="space-y-2">
-                      <label className="text-[#00ff41] text-xs font-mono font-bold">MODERN ENGLISH INPUT:</label>
-                      <textarea 
-                        value={transInput}
-                        onChange={(e) => setTransInput(e.target.value)}
-                        placeholder="e.g. 'That party was really fun, I made a lot of money.'"
-                        className="w-full h-24 bg-black border border-[#333] p-4 text-white font-sans text-sm outline-none focus:border-[#00ff41]"
+              
+              <div className="text-gray-300 text-sm font-mono leading-relaxed pl-11 mb-3">
+                {post.content}
+              </div>
+
+              {post.mediaUrl && (
+                  <div className="pl-11 mb-3">
+                      {post.mediaType === 'video' ? (
+                          <div className="aspect-video bg-black border border-[#333] rounded-lg overflow-hidden shadow-lg">
+                              <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                          </div>
+                      ) : post.mediaType === 'vertical_video' ? (
+                          <div className="max-w-[250px] aspect-[9/16] bg-black border-4 border-gray-800 rounded-2xl overflow-hidden shadow-2xl mx-auto relative group-hover:scale-105 transition-transform">
+                              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-b-xl z-20"></div>
+                              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-10 h-1 bg-white/50 rounded-full z-20"></div>
+                              <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                          </div>
+                      ) : (
+                          <div className="rounded-lg border border-[#333] overflow-hidden shadow-lg">
+                              <img src={post.mediaUrl} alt="Post Attachment" className="w-full h-auto max-h-96 object-cover" onError={(e) => e.target.style.display = 'none'} />
+                          </div>
+                      )}
+                  </div>
+              )}
+              
+              {/* Actions Bar */}
+              <div className="flex gap-6 text-[10px] text-gray-500 font-mono border-t border-[#333] pt-2 pl-11">
+                <button 
+                  onClick={() => handleLike(post.id, post.likes)}
+                  className="flex items-center gap-1 hover:text-[#00ff41] transition-colors"
+                >
+                  <Heart size={12}/> 
+                  <span>{post.likes || 0} LIKES</span>
+                </button>
+                <button 
+                  onClick={() => setReplyingTo(replyingTo === post.id ? null : post.id)}
+                  className="flex items-center gap-1 hover:text-[#00ff41] transition-colors"
+                >
+                  <MessageCircle size={12}/> 
+                  <span>REPLY ({post.replies?.length || 0})</span>
+                </button>
+              </div>
+
+              {/* Replies Section */}
+              {(post.replies?.length > 0 || replyingTo === post.id) && (
+                <div className="mt-3 pl-11">
+                  
+                  {/* Reply Input */}
+                  {replyingTo === post.id && (
+                    <div className="flex gap-2 mb-3">
+                      <input 
+                        className="flex-1 bg-[#050505] border border-[#333] text-white text-xs p-1 outline-none font-mono focus:border-[#00ff41]"
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Reply..."
+                        onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id)}
+                        autoFocus
                       />
-                   </div>
-
-                   <div className="flex justify-center">
                       <button 
-                        onClick={handleTranslate}
-                        disabled={transLoading}
-                        className="bg-[#333] hover:bg-[#00ff41] text-white hover:text-black border border-[#00ff41] px-6 py-2 font-mono text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50"
+                        onClick={() => handleReply(post.id)}
+                        className="bg-[#333] text-white px-3 text-[10px] font-bold hover:bg-[#00ff41] hover:text-black uppercase"
                       >
-                         {transLoading ? 'TRANSLATING...' : <><ArrowRightLeft size={14}/> CONVERT TO 2004 NYC ✨</>}
+                        Send
                       </button>
-                   </div>
+                    </div>
+                  )}
 
-                   <div className="space-y-2 relative">
-                      <label className="text-[#00ff41] text-xs font-mono font-bold">OUTPUT (RED HOOK DIALECT):</label>
-                      <div className="w-full h-24 bg-[#050505] border border-[#333] p-4 text-[#00ff41] font-mono text-sm leading-relaxed overflow-y-auto">
-                         {transOutput ? transOutput : <span className="text-gray-700 italic">// AWAITING INPUT //</span>}
-                      </div>
-                   </div>
+                  {/* Reply List */}
+                  {post.replies?.length > 0 && (
+                    <div className="space-y-1 border-l border-[#333] pl-3">
+                      {post.replies.map((reply, idx) => (
+                         <div key={idx} className="text-xs font-mono">
+                            <span className="text-[#00ff41] font-bold mr-2">{reply.user}:</span>
+                            <span className="text-gray-400">{reply.text}</span>
+                         </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-             </div>
-             <p className="text-gray-500 font-mono text-[10px] mt-4 text-center max-w-md">
-                {'>'} NOTE: TRANSLATION ENGINE BASED ON 2004 LIVEWIRE FORUM LOGS. ACCURACY NOT GUARANTEED OUTSIDE OF BROOKLYN.
-             </p>
-          </div>
-        )}
+              )}
+
+            </div>
+          ))}
+          
+          {posts.length === 0 && (
+            <div className="text-center py-20 border-2 border-dashed border-[#333] text-gray-600 text-xs font-mono">
+              <Activity size={48} className="text-gray-800 mx-auto mb-4"/>
+              <div className="text-gray-600 font-mono text-xs tracking-widest">NO SIGNAL DETECTED</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-// 9. SIDEKICK CHAT (IM Style Refined)
+// 9. SIDEKICK CHAT
 const SidekickChat = () => {
   const [messages, setMessages] = useState([
     { sender: 'whip', text: "Yo, who's this? How'd you tap into my drive?" }
@@ -1201,9 +1622,7 @@ const SidekickChat = () => {
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      {/* AIM-Style Container */}
       <div className="relative z-20 w-full max-w-md bg-[#d4d0c8] border-2 border-white shadow-2xl flex flex-col h-[500px]">
-        {/* Title Bar */}
         <div className="bg-gradient-to-r from-[#003399] to-[#0099cc] text-white px-2 py-1 flex justify-between items-center select-none">
            <div className="flex items-center gap-1 text-xs font-bold font-sans">
              <MessageSquare size={12} className="text-yellow-400"/>
@@ -1214,13 +1633,9 @@ const SidekickChat = () => {
              <button className="w-4 h-4 bg-[#d4d0c8] border border-white border-r-gray-500 border-b-gray-500 text-black text-[10px] flex items-center justify-center">X</button>
            </div>
         </div>
-        
-        {/* Menu Bar */}
         <div className="bg-[#d4d0c8] text-black text-[10px] px-2 border-b border-gray-400 flex gap-2 font-sans py-0.5">
            <span className="underline">F</span>ile <span className="underline">E</span>dit <span className="underline">I</span>nsert <span className="underline">P</span>eople
         </div>
-
-        {/* Chat Area */}
         <div className="flex-1 bg-white border-2 border-inset border-gray-400 m-1 p-2 overflow-y-auto font-sans text-sm">
            {messages.map((msg, idx) => (
              <div key={idx} className="mb-1">
@@ -1233,15 +1648,13 @@ const SidekickChat = () => {
            {loading && <div className="text-gray-500 italic text-xs">WhipMntz04 is typing...</div>}
            <div ref={messagesEndRef} />
         </div>
-
-        {/* Input Area */}
         <div className="h-24 bg-white border-2 border-inset border-gray-400 m-1 mt-0 p-2 font-sans">
            <div className="flex gap-2 mb-1 border-b border-gray-200 pb-1">
-              <button className="text-xs font-bold text-blue-600 hover:bg-gray-100 px-1 rounded">A</button>
-              <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">A</button>
-              <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">B</button>
-              <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">I</button>
-              <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">U</button>
+             <button className="text-xs font-bold text-blue-600 hover:bg-gray-100 px-1 rounded">A</button>
+             <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">A</button>
+             <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">B</button>
+             <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">I</button>
+             <button className="text-xs font-bold text-gray-600 hover:bg-gray-100 px-1 rounded">U</button>
            </div>
            <textarea 
              className="w-full h-12 outline-none resize-none text-sm font-comic"
@@ -1251,8 +1664,6 @@ const SidekickChat = () => {
              autoFocus
            />
         </div>
-
-        {/* Footer Buttons */}
         <div className="flex justify-between p-1 bg-[#d4d0c8]">
            <button className="px-3 py-0.5 border border-white border-r-gray-600 border-b-gray-600 text-xs shadow-sm bg-[#d4d0c8] active:border-gray-600 active:border-r-white">Warn</button>
            <button className="px-3 py-0.5 border border-white border-r-gray-600 border-b-gray-600 text-xs shadow-sm bg-[#d4d0c8] active:border-gray-600 active:border-r-white">Block</button>
@@ -1268,204 +1679,93 @@ const SidekickChat = () => {
   );
 };
 
-// 10. NEWS ARCHIVE (New Feature - 2004/2005 Clippings)
+// 10. NEWS ARCHIVE
 const NewsArchive = () => {
-  const newsItems = [
-    { 
-      id: 1,
-      date: "OCT 24 2004", 
-      time: "11:23 PM EST",
-      source: "XXL MAGAZINE ONLINE", 
-      author: "B. Wilson",
-      title: "BREAKING: RED HOOK EMCEE 'WHIP MONTEZ' SIGNS TO LIVEWIRE", 
-      content: "The rumors are true. After a bidding war that reportedly involved Def Jam and Roc-A-Fella, the Red Hook lyricist known as Whip Montez has inked a deal with Erick Sermon's Livewire imprint. Sources say the deal includes full creative control—a rarity for a debut artist. Whip has been tearing up the mixtape circuit with 'Red Hook Diaries', bringing a gritty, noir storytelling style that's been missing from the radio. Debut album 'Female Hustle' is tentatively scheduled for Summer 2005.",
-      tags: ["HIPHOP", "NEW_SIGNING", "NYC"],
-      comments: [
-        { user: "BklynZoo_99", time: "11:45 PM", text: "Finally! She's been holding it down for the hook. Livewire better not shelf her." },
-        { user: "Haterade", time: "11:50 PM", text: "Another one hit wonder. Bet we never hear the album." },
-        { user: "RealHipHopHead", time: "12:02 AM", text: "Her flow is different though. That 'Projects Window' track is classic." }
-      ]
-    },
-    { 
-      id: 2,
-      date: "APR 01 2004", 
-      time: "09:00 AM PST",
-      source: "GOOGLE PRESS RELEASE", 
-      author: "System Admin",
-      title: "GOOGLE ANNOUNCES 'GMAIL': 1GB STORAGE FREE?", 
-      content: "In a move that many are calling an April Fools' joke, search giant Google has announced a new email service called 'Gmail'. The service claims to offer 1 gigabyte of storage per user—500 times what Hotmail offers. Critics are skeptical about the storage claims and privacy implications of 'contextual advertising'. Is this the end of paid email, or just a data mining operation?",
-      tags: ["TECH", "GOOGLE", "EMAIL"],
-      comments: [
-        { user: "TechGuru04", time: "09:15 AM", text: "1GB? Impossible. Servers cost too much. Definitely a prank." },
-        { user: "Hotmail4Life", time: "09:30 AM", text: "Who needs 1GB of email? I delete mine every week." }
-      ]
-    },
-    { 
-      id: 3,
-      date: "FEB 04 2004", 
-      time: "03:30 PM EST",
-      source: "THE HARVARD CRIMSON", 
-      author: "Campus Beat",
-      title: "THEFACEBOOK.COM LAUNCHES: EXCLUSIVE TO STUDENTS", 
-      content: "A new social utility has launched at Harvard. 'TheFacebook' describes itself as an online directory that connects people through social networks at colleges. Unlike Friendster, it's clean, fast, and requires a .edu email address. Early adoption is skyrocketing across campus. Will it expand to other Ivies?",
-      tags: ["SOCIAL", "COLLEGE", "STARTUP"],
-      comments: [
-        { user: "SocialButterfly", time: "04:00 PM", text: "Friendster is dead. MySpace is too ugly. This looks promising." },
-        { user: "CodingNinja", time: "04:20 PM", text: "It's just a PHP directory. Give it 6 months." }
-      ]
-    },
-    { 
-      id: 4,
-      date: "NOV 09 2004", 
-      time: "12:01 AM EST",
-      source: "GAMING INSIDER", 
-      author: "MasterChief Fan",
-      title: "HALO 2 SHATTERS SALES RECORDS: $125M DAY ONE", 
-      content: "Microsoft's Halo 2 has officially become the biggest entertainment launch in history. Lines wrapped around blocks nationwide for midnight releases. The introduction of Xbox Live matchmaking is being hailed as a revolution for console gaming. Productivity across America is expected to drop significantly tomorrow.",
-      tags: ["GAMING", "XBOX", "HALO2"],
-      comments: [
-        { user: "SniperElite", time: "12:05 AM", text: "Dual wielding is game changing. See you on Live!" },
-        { user: "SonyPony", time: "12:10 AM", text: "PS2 still has better exclusives. GTA San Andreas > Halo." }
-      ]
-    }
+  const [mode, setMode] = useState('historical'); // 'historical' or 'modern'
+  const [newsItems, setNewsItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const defaultHistorical = [
+    { id: 1, date: "OCT 24 2004", time: "11:23 PM EST", source: "XXL MAGAZINE", author: "B. Wilson", title: "BREAKING: WHIP MONTEZ SIGNS TO LIVEWIRE", content: "After a bidding war, the Red Hook lyricist has inked a deal with Erick Sermon.", tags: ["HIPHOP", "NEW_SIGNING", "NYC"] },
+    { id: 2, date: "APR 01 2004", time: "09:00 AM PST", source: "GOOGLE", author: "Admin", title: "GOOGLE ANNOUNCES 'GMAIL'", content: "Google announced a new email service called 'Gmail' offering 1GB of storage.", tags: ["TECH", "GOOGLE"] },
+    { id: 3, date: "FEB 04 2004", time: "03:30 PM EST", source: "HARVARD CRIMSON", author: "Campus Beat", title: "THEFACEBOOK.COM LAUNCHES", content: "A new social utility has launched at Harvard connecting students.", tags: ["SOCIAL", "STARTUP"] }
   ];
+
+  useEffect(() => {
+    setNewsItems(defaultHistorical);
+  }, []);
+
+  const fetchNews = async (selectedMode) => {
+    setLoading(true);
+    setMode(selectedMode);
+    const era = selectedMode === 'historical' ? "2000-2004" : "2024-2025";
+    const useSearch = selectedMode === 'modern';
+    let context = selectedMode === 'historical' ? "You are a hip-hop blog editor from 2004." : `You are a Gen Z hip-hop news aggregator from 2024/2025. Search query: ${searchTerm || "Modern Hip Hop News"}.`;
+    const systemPrompt = `Generate a JSON array of 3 news objects. Format: [{ "id": 1, "date": "MMM DD YYYY", "source": "SOURCE", "title": "HEADLINE", "content": "Short text", "tags": ["TAG1"] }]. No markdown.`;
+
+    try {
+      const response = await callGemini(`${context} Era: ${era}`, systemPrompt, useSearch);
+      const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
+      setNewsItems(JSON.parse(cleanJson));
+    } catch (e) {
+      if (selectedMode === 'historical') setNewsItems(defaultHistorical);
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      
-      {/* Main Container - Blog Style */}
-      <div className="relative z-30 w-full max-w-5xl h-[85vh] bg-[#0a0a0a] border-2 border-[#333] shadow-[0_0_40px_rgba(0,255,65,0.1)] flex flex-col font-mono text-gray-300">
-        
-        {/* Header Banner */}
-        <div className="bg-[#00ff41] text-black p-4 border-b-4 border-black flex justify-between items-end">
+      <div className={`relative z-30 w-full max-w-5xl h-[85vh] border-2 shadow-[0_0_40px_rgba(0,255,65,0.1)] flex flex-col font-mono text-gray-300 transition-colors duration-500 ${mode === 'historical' ? 'bg-[#0a0a0a] border-[#333]' : 'bg-[#050510] border-cyan-800'}`}>
+        <div className={`${mode === 'historical' ? 'bg-[#00ff41] text-black' : 'bg-cyan-500 text-black'} p-4 border-b-4 border-black flex justify-between items-end transition-colors duration-500`}>
            <div>
-              <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-none flex items-center gap-4">
-                <Globe size={48} strokeWidth={2.5}/> 
-                THE_FEED
-              </h1>
-              <p className="font-bold tracking-widest text-xs md:text-sm mt-1">UNFILTERED NEWS FROM THE UNDERGROUND // EST. 1999</p>
+             <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-none flex items-center gap-4">
+               <Globe size={48} strokeWidth={2.5}/> {mode === 'historical' ? 'THE_FEED' : 'VIRAL_DASH'}
+             </h1>
            </div>
-           <div className="text-right hidden md:block">
-              <div className="font-bold text-lg">VOL. 84</div>
-              <div className="text-xs">ARCHIVE_MODE: READ_ONLY</div>
+           
+           <div className="flex items-center gap-2">
+              <div className="mt-4 max-w-md flex items-center gap-2 bg-black/20 p-1 rounded-sm">
+                <Search size={16} className="text-black ml-2"/>
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={mode === 'historical' ? "SEARCH ARCHIVES..." : "SEARCH WEB (e.g. 'Drake News')"}
+                  className="bg-transparent border-none outline-none text-black font-bold text-xs w-full placeholder-black/50"
+                  onKeyPress={(e) => e.key === 'Enter' && fetchNews(mode)}
+                />
+                {mode === 'modern' && (
+                    <button onClick={() => fetchNews(mode)} className="bg-black text-cyan-500 px-3 py-1 text-xs font-bold rounded-sm">GO</button>
+                )}
+             </div>
+             
+              <div className="flex items-center gap-2 bg-black/20 p-1 rounded ml-4">
+                  <span className={`text-xs font-bold ${mode === 'historical' ? 'text-black opacity-100' : 'text-black opacity-50'}`}>2004</span>
+                  <button onClick={() => fetchNews(mode === 'historical' ? 'modern' : 'historical')} disabled={loading} className="focus:outline-none">
+                    {mode === 'historical' ? <ToggleLeft size={32} /> : <ToggleRight size={32} />}
+                  </button>
+                  <span className={`text-xs font-bold ${mode === 'modern' ? 'text-black opacity-100' : 'text-black opacity-50'}`}>2024</span>
+               </div>
            </div>
         </div>
-
-        {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-           
-           {/* Sidebar (Desktop) */}
-           <div className="hidden md:block w-64 bg-[#111] border-r border-[#333] p-4 overflow-y-auto">
-              <div className="mb-6">
-                 <h3 className="text-[#00ff41] font-bold border-b border-[#333] pb-1 mb-2 text-sm">POPULAR_TAGS</h3>
-                 <div className="flex flex-wrap gap-2">
-                    {['#HIPHOP', '#TECH', '#GAMING', '#NYC', '#LEAKS', '#DRAMA'].map(tag => (
-                       <span key={tag} className="text-xs text-gray-500 hover:text-white cursor-pointer hover:underline">{tag}</span>
-                    ))}
-                 </div>
-              </div>
-              <div className="mb-6">
-                 <h3 className="text-[#00ff41] font-bold border-b border-[#333] pb-1 mb-2 text-sm">BLOGROLL</h3>
-                 <ul className="space-y-2 text-xs text-blue-400">
-                    <li className="cursor-pointer hover:underline hover:text-[#00ff41]">{'>'} NahRight.com</li>
-                    <li className="cursor-pointer hover:underline hover:text-[#00ff41]">{'>'} 2DopeBoyz</li>
-                    <li className="cursor-pointer hover:underline hover:text-[#00ff41]">{'>'} Slashdot</li>
-                    <li className="cursor-pointer hover:underline hover:text-[#00ff41]">{'>'} HypeBeast</li>
-                 </ul>
-              </div>
-              <div className="border border-[#333] p-2 bg-black text-center">
-                 <div className="text-[10px] text-gray-500 mb-1">ADVERTISEMENT</div>
-                 <div className="h-24 bg-[#00ff41]/10 flex items-center justify-center border border-dashed border-[#00ff41]/30 text-[#00ff41] text-xs font-bold animate-pulse">
-                    BUY RINGTONES<br/>TEXT 'WHIP' TO 55555
-                 </div>
-              </div>
+        
+        <div className="flex-1 flex overflow-hidden relative">
+           {loading && <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center"><RefreshCw size={48} className="animate-spin text-[#00ff41]" /></div>}
+           <div className="hidden md:block w-64 bg-[#111] border-r border-[#333] p-4 overflow-y-auto shrink-0">
+             <h3 className="font-bold text-[#00ff41] border-b border-[#333] pb-1 mb-2 text-sm">TAGS</h3>
+             <div className="flex flex-wrap gap-2">{['#HIPHOP', '#TECH', '#NYC'].map(tag => <span key={tag} className="text-xs text-gray-500">{tag}</span>)}</div>
            </div>
-
-           {/* Main Feed */}
-           <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-4 md:p-8 space-y-8 custom-scrollbar">
-              {newsItems.map((item) => (
-                <div key={item.id} className="border border-[#333] bg-[#111] p-1 shadow-lg hover:border-[#00ff41]/50 transition-colors">
-                   
-                   {/* Post Header */}
-                   <div className="bg-[#1a1a1a] p-3 border-b border-[#333] flex justify-between items-start">
-                      <div>
-                         <h2 className="text-xl md:text-2xl font-bold text-[#e0e0e0] leading-tight hover:text-[#00ff41] cursor-pointer transition-colors">
-                            <span className="text-[#00ff41] mr-2">[{item.id}]</span>
-                            {item.title}
-                         </h2>
-                         <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                            <span className="flex items-center gap-1"><Calendar size={12}/> {item.date}</span>
-                            <span className="flex items-center gap-1"><User size={12}/> {item.author}</span>
-                            <span className="text-[#00ff41] uppercase tracking-wider">SOURCE: {item.source}</span>
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* Post Content */}
-                   <div className="p-4 md:p-6 bg-[#0a0a0a]">
-                      <p className="text-sm md:text-base leading-relaxed text-gray-300 font-sans border-l-2 border-[#333] pl-4">
-                         {item.content}
-                      </p>
-                      <div className="mt-4 flex gap-2">
-                         {item.tags.map(tag => (
-                            <span key={tag} className="text-[10px] bg-[#222] text-gray-400 px-2 py-1 rounded border border-[#333] flex items-center gap-1">
-                               <Hash size={8}/> {tag}
-                            </span>
-                         ))}
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-[#333] flex gap-4 text-xs font-bold">
-                         <button className="text-blue-400 hover:text-white flex items-center gap-1 hover:underline">
-                            <ExternalLink size={12}/> PERMALINK
-                         </button>
-                         <button className="text-blue-400 hover:text-white flex items-center gap-1 hover:underline">
-                            <MessageSquare size={12}/> {item.comments.length} COMMENTS
-                         </button>
-                      </div>
-                   </div>
-
-                   {/* Comments Section */}
-                   <div className="bg-[#0f0f0f] p-4 border-t border-[#333]">
-                      <div className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-widest">User Comments</div>
-                      <div className="space-y-3">
-                         {item.comments.map((comment, idx) => (
-                            <div key={idx} className="flex gap-3 text-sm group">
-                               <div className="w-8 h-8 bg-[#222] border border-[#333] flex items-center justify-center text-[#00ff41] font-bold text-xs shrink-0">
-                                  {comment.user.charAt(0)}
-                               </div>
-                               <div className="flex-1">
-                                  <div className="flex items-baseline gap-2">
-                                     <span className="text-[#00ff41] font-bold text-xs hover:underline cursor-pointer">{comment.user}</span>
-                                     <span className="text-[10px] text-gray-600">{comment.time}</span>
-                                  </div>
-                                  <div className="text-gray-400 text-xs mt-0.5 group-hover:text-gray-200 transition-colors">
-                                     {comment.text}
-                                  </div>
-                               </div>
-                            </div>
-                         ))}
-                      </div>
-                      
-                      {/* Add Comment Box */}
-                      <div className="mt-4 flex gap-2">
-                         <input 
-                           type="text" 
-                           placeholder="Post a comment..." 
-                           className="flex-1 bg-black border border-[#333] px-3 py-2 text-xs text-white focus:border-[#00ff41] outline-none font-sans"
-                         />
-                         <button className="bg-[#333] text-white px-4 py-2 text-xs font-bold hover:bg-[#00ff41] hover:text-black transition-colors">POST</button>
-                      </div>
-                   </div>
-
-                </div>
-              ))}
-              
-              <div className="text-center py-8">
-                 <button className="text-[#00ff41] text-xs font-bold border border-[#00ff41] px-6 py-2 hover:bg-[#00ff41] hover:text-black transition-colors">
-                    LOAD OLDER POSTS
-                 </button>
-              </div>
+           <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-4 space-y-4">
+             {newsItems.map((item) => (
+               <div key={item.id} className="border border-[#333] bg-[#111] p-4 hover:border-[#00ff41]">
+                   <h2 className="text-xl font-bold text-[#e0e0e0] mb-2">{item.title}</h2>
+                   <p className="text-sm text-gray-400">{item.content}</p>
+                   <div className="flex gap-4 mt-2 text-xs text-[#00ff41]">{item.source} // {item.date}</div>
+               </div>
+             ))}
            </div>
         </div>
       </div>
@@ -1473,7 +1773,7 @@ const NewsArchive = () => {
   );
 };
 
-// 11. NEW: RAP BATTLE (The Cipher)
+// 11. RAP BATTLE
 const RapBattle = () => {
   const [history, setHistory] = useState([
     { sender: 'ai', text: "Yo, step up to the mic if you think you're raw / I'll chew you up and spit you out, that's the law." }
@@ -1504,19 +1804,16 @@ const RapBattle = () => {
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      <div className="relative z-30 w-full max-w-2xl h-[70vh] bg-[#111] border border-[#333] shadow-2xl flex flex-col">
+      <div className="relative z-30 w-full max-w-2xl h-[70vh] bg-[#111] border border-red-700 shadow-[0_0_20px_rgba(220,38,38,0.4)] flex flex-col">
         <div className="bg-red-700 text-white px-4 py-2 flex justify-between items-center font-bold">
            <span className="flex items-center gap-2"><Flame size={18}/> CIPHER_DOJO.EXE</span>
-           <div className="flex gap-1">
-             <div className="w-3 h-3 bg-black"></div>
-           </div>
+           <div className="flex gap-1"><div className="w-3 h-3 bg-black"></div></div>
         </div>
-        
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/90">
            {history.map((turn, i) => (
              <div key={i} className={`flex ${turn.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[70%] p-3 border-l-4 ${turn.sender === 'user' ? 'border-[#00ff41] bg-[#00ff41]/10 text-right' : 'border-red-500 bg-red-900/20 text-left'}`}>
-                   <div className={`text-[10px] font-bold mb-1 ${turn.sender === 'user' ? 'text-[#00ff41]' : 'text-red-500'}`}>{turn.sender === 'user' ? 'YOU' : 'RIVAL MC'}</div>
+                <div className={`max-w-[70%] p-3 border-l-4 ${turn.sender === 'user' ? 'border-red-500 bg-red-900/20 text-right' : 'border-red-500 bg-red-900/20 text-left'}`}>
+                   <div className={`text-[10px] font-bold mb-1 ${turn.sender === 'user' ? 'text-red-500' : 'text-red-500'}`}>{turn.sender === 'user' ? 'YOU' : 'RIVAL MC'}</div>
                    <div className="text-white font-mono text-sm whitespace-pre-wrap">{turn.text}</div>
                 </div>
              </div>
@@ -1524,14 +1821,11 @@ const RapBattle = () => {
            {loading && <div className="text-red-500 animate-pulse text-xs font-mono">Rival is writing a diss...</div>}
            <div ref={endRef}></div>
         </div>
-
         <div className="p-4 bg-[#1a1a1a] border-t border-[#333] flex gap-2">
            <input 
-             type="text" 
-             value={input} 
-             onChange={(e) => setInput(e.target.value)} 
+             type="text" value={input} onChange={(e) => setInput(e.target.value)} 
              placeholder="Spit your bars here..." 
-             className="flex-1 bg-black border border-[#333] text-white p-2 font-mono outline-none focus:border-[#00ff41]" 
+             className="flex-1 bg-black border border-[#333] text-white p-2 font-mono outline-none focus:border-red-500" 
              onKeyPress={(e) => e.key === 'Enter' && handleBattle()} 
            />
            <button onClick={handleBattle} disabled={loading} className="bg-red-600 text-white px-6 py-2 font-bold font-mono hover:bg-red-500 transition-colors uppercase disabled:opacity-50">SPIT</button>
@@ -1541,7 +1835,7 @@ const RapBattle = () => {
   );
 };
 
-// 12. NEW: CRATE DIGGER (Sample Finder)
+// 12. CRATE DIGGER
 const CrateDigger = () => {
   const [mood, setMood] = useState("");
   const [samples, setSamples] = useState([]);
@@ -1551,18 +1845,12 @@ const CrateDigger = () => {
     if (!mood.trim()) return;
     setLoading(true);
     setSamples([]);
-    
-    const systemPrompt = "You are a crate digger and hip hop producer from 2004. The user gives you a 'vibe' or 'mood'. You suggest 3 obscure 70s/80s records (Soul, Jazz, Funk, OSTs) that would be perfect to sample for that vibe. Format the output as a valid JSON array of objects with keys: 'artist', 'track', 'year', 'desc'. The 'desc' should explain why it's good for sampling (e.g. 'nasty drum break', 'haunting vocal'). Do not include markdown formatting.";
-    
+    const systemPrompt = "You are a crate digger. Suggest 3 obscure 70s/80s records based on the user's mood. JSON format: [{ 'artist': '', 'track': '', 'year': '', 'desc': '' }]. No markdown.";
     const responseText = await callGemini(mood, systemPrompt);
     try {
-      // Clean up potential markdown formatting from LLM
       const cleanText = responseText.replace(/```json/g, '').replace(/```/g, '');
-      const parsed = JSON.parse(cleanText);
-      setSamples(parsed);
-    } catch (e) {
-      console.error("Failed to parse samples", e);
-    }
+      setSamples(JSON.parse(cleanText));
+    } catch (e) { console.error("Parse error", e); }
     setLoading(false);
   };
 
@@ -1570,517 +1858,373 @@ const CrateDigger = () => {
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      <div className="relative z-30 w-full max-w-3xl h-[80vh] bg-[#111] border border-[#333] shadow-2xl flex flex-col">
+      <div className="relative z-30 w-full max-w-3xl h-[80vh] bg-[#111] border border-yellow-600 shadow-[0_0_20px_rgba(250,204,21,0.4)] flex flex-col">
         <div className="bg-yellow-600 text-black px-4 py-2 flex justify-between items-center font-bold">
            <span className="flex items-center gap-2"><Disc size={18}/> CRATE_DIGGER_PRO.EXE</span>
-           <div className="flex gap-1">
-             <div className="w-3 h-3 bg-black"></div>
-           </div>
+           <div className="flex gap-1"><div className="w-3 h-3 bg-black"></div></div>
         </div>
-
         <div className="p-6 bg-[#1a1a1a] border-b border-[#333]">
-           <h2 className="text-white font-black text-2xl mb-2 tracking-tight">FIND THE PERFECT SAMPLE</h2>
+           <h2 className="text-white font-black text-2xl mb-2">FIND THE PERFECT SAMPLE</h2>
            <div className="flex gap-2">
-              <input 
-                type="text" 
-                value={mood} 
-                onChange={(e) => setMood(e.target.value)} 
-                placeholder="Enter a vibe (e.g. 'grimy piano noir', '70s cop show chase')" 
-                className="flex-1 bg-black border border-[#333] text-white p-3 font-mono outline-none focus:border-yellow-600" 
-                onKeyPress={(e) => e.key === 'Enter' && handleDig()} 
-              />
-              <button onClick={handleDig} disabled={loading} className="bg-yellow-600 text-black px-6 font-bold font-mono hover:bg-yellow-500 transition-colors flex items-center gap-2 disabled:opacity-50">
-                {loading ? "DIGGING..." : <><Search size={18}/> DIG</>}
-              </button>
+             <input type="text" value={mood} onChange={(e) => setMood(e.target.value)} placeholder="Enter a vibe..." className="flex-1 bg-black border border-[#333] text-white p-3 font-mono outline-none focus:border-yellow-600" onKeyPress={(e) => e.key === 'Enter' && handleDig()} />
+             <button onClick={handleDig} disabled={loading} className="bg-yellow-600 text-black px-6 font-bold hover:bg-yellow-500">DIG</button>
            </div>
         </div>
-
         <div className="flex-1 overflow-y-auto p-6 bg-[#0a0a0a]">
-           <div className="grid gap-4">
-              {samples.map((sample, i) => (
-                <div key={i} className="flex gap-4 p-4 border border-[#333] bg-[#111] hover:border-yellow-600 transition-colors group">
-                   <div className="w-24 h-24 bg-[#222] flex items-center justify-center relative shrink-0">
-                      <div className="w-20 h-20 rounded-full bg-black border-4 border-[#333] flex items-center justify-center animate-spin-slow">
-                         <div className="w-8 h-8 rounded-full bg-yellow-600/50"></div>
-                      </div>
-                   </div>
-                   <div className="flex-1">
-                      <div className="text-yellow-600 text-xs font-bold mb-1">{sample.year} // {sample.artist}</div>
-                      <div className="text-white font-black text-xl mb-2">{sample.track}</div>
-                      <div className="text-gray-400 font-mono text-sm leading-relaxed border-l-2 border-yellow-600/30 pl-3">
-                         "{sample.desc}"
-                      </div>
-                   </div>
+           {samples.map((sample, i) => (
+             <div key={i} className="flex gap-4 p-4 border border-[#333] bg-[#111] mb-2 hover:border-yellow-600">
+                <div className="flex-1">
+                   <div className="text-yellow-600 text-xs font-bold mb-1">{sample.year} // {sample.artist}</div>
+                   <div className="text-white font-black text-xl">{sample.track}</div>
+                   <div className="text-gray-400 text-sm mt-1">{sample.desc}</div>
                 </div>
-              ))}
-              {!loading && samples.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-gray-600 font-mono opacity-50 mt-12">
-                   <Database size={48} className="mb-4"/>
-                   <div>AWAITING QUERY...</div>
-                </div>
-              )}
-           </div>
+             </div>
+           ))}
         </div>
       </div>
     </div>
   );
 };
 
-// 12.5. NEW: THE A&R OFFICE (Demo Review)
-const AROffice = () => {
+// 13. A&R SUITE
+const ARSuite = () => {
   const [demoText, setDemoText] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleReview = async () => {
     if (!demoText.trim()) return;
     setLoading(true);
-    setFeedback(null);
-
-    const systemPrompt = `You are a ruthless, busy, high-powered Record Executive in New York City, year 2004 (think Dame Dash meets Suge Knight). 
-    A hopeful artist has just submitted a demo (lyrics or concept). 
-    Rate their potential from 'Trash' (1/10), 'Brick' (3/10), 'Gold' (7/10), to 'Platinum' (10/10). 
-    Give a short, harsh, but constructive critique in the style of a 2004 industry mogul. Use slang like 'money', 'clown', 'hot', 'wack'. 
-    If it's wack, say it's wack. If it's hot, tell them we might sign a deal. 
-    Return strictly a JSON object: { "rating": "string", "score": number, "critique": "string" }.`;
-
+    setFeedback(null); // Clear previous feedback
+    const systemPrompt = "You are an A&R. Critique these lyrics. JSON format: { 'critique': '', 'commercial': 0-10, 'street': 0-10 }.";
+    
+    const responseText = await callGemini(demoText, systemPrompt);
+    
     try {
-      const result = await callGemini(demoText, systemPrompt);
-      const cleanJson = result.replace(/```json/g, '').replace(/```/g, '');
-      const parsed = JSON.parse(cleanJson);
-      setFeedback(parsed);
-    } catch (e) {
-      setFeedback({ rating: "ERROR", score: 0, critique: "Get out of my office. (System Error)" });
+      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      setFeedback(JSON.parse(cleanJson));
+    } catch (e) { 
+        console.error("Failed to parse A&R response:", e);
+        setFeedback({ critique: "ERROR: Failed to process analysis data.", commercial: 'N/A', street: 'N/A' });
     }
     setLoading(false);
   };
 
   return (
-    <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
+    <div className="h-full w-full relative overflow-hidden flex flex-col items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
-      <div className="absolute inset-0 bg-black/90 z-10"></div>
-      
-      <div className="relative z-30 w-full max-w-4xl h-[85vh] flex flex-col border-4 border-[#444] shadow-2xl bg-[#1a1a1a]">
-        {/* Executive Office Header */}
-        <div className="bg-gradient-to-r from-gray-200 to-gray-400 p-4 border-b-4 border-[#333] flex justify-between items-center">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center border-2 border-yellow-600">
-                 <Briefcase size={24} className="text-yellow-500"/>
-              </div>
-              <div>
-                 <h1 className="text-2xl font-black text-black uppercase tracking-tighter">EXECUTIVE SUITE</h1>
-                 <p className="text-xs font-bold text-gray-700 tracking-widest">LIVEWIRE ENTERTAINMENT HQ // 45TH FLOOR</p>
-              </div>
-           </div>
-           <div className="hidden md:block text-right">
-              <div className="text-[10px] font-bold text-gray-600">CURRENT STATUS</div>
-              <div className="text-red-700 font-black text-lg animate-pulse">DO NOT DISTURB</div>
-           </div>
+      <div className="absolute inset-0 bg-black/80 z-10"></div>
+      <div className="relative z-30 w-full max-w-4xl h-[85vh] bg-[#1a1a1a] border border-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)] flex flex-col">
+        <div className="bg-blue-600 text-white px-4 py-2 flex justify-between items-center font-bold">
+          <span className="flex items-center gap-2"><Briefcase size={18}/> A&R_DASHBOARD.EXE</span>
         </div>
-
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-           {/* Input Section */}
-           <div className="w-full md:w-1/2 p-6 flex flex-col bg-[#0f0f0f] border-r border-[#333]">
-              <label className="text-gray-400 text-xs font-bold mb-4 uppercase tracking-widest flex items-center gap-2">
-                 <Award size={14} className="text-yellow-500"/> Submit Your Demo
-              </label>
-              <textarea 
-                value={demoText}
-                onChange={(e) => setDemoText(e.target.value)}
-                placeholder="Spit your best 16 bars or pitch your album concept here. Don't waste my time..."
-                className="flex-1 bg-[#050505] border border-[#333] p-4 text-white font-mono text-sm outline-none focus:border-yellow-500 resize-none mb-4 placeholder-gray-700"
-              />
-              <button 
-                onClick={handleSubmit}
-                disabled={loading || !demoText}
-                className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-black uppercase py-4 tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "EXECUTIVE IS REVIEWING..." : "SUBMIT FOR REVIEW ✨"}
-              </button>
-           </div>
-
-           {/* Feedback Section */}
-           <div className="w-full md:w-1/2 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] bg-[#2a2a2a] relative flex flex-col items-center justify-center p-8 text-center">
-              <div className="absolute inset-0 bg-black/60"></div>
-              
-              <div className="relative z-10 w-full">
-                 {!feedback && !loading && (
-                    <div className="opacity-50">
-                       <h3 className="text-3xl font-black text-white mb-2">THE DESK</h3>
-                       <p className="text-gray-400 font-mono text-xs">Waiting for submission...</p>
-                    </div>
-                 )}
-
-                 {loading && (
-                    <div className="flex flex-col items-center gap-4">
-                       <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                       <div className="text-yellow-500 font-mono text-xs animate-pulse">ANALYZING FLOW PATTERNS...</div>
-                    </div>
-                 )}
-
-                 {feedback && !loading && (
-                    <div className="animate-slide-up">
-                       <div className="inline-block border-4 border-white px-8 py-2 mb-6 bg-black shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                          <span className={`text-4xl md:text-5xl font-black uppercase tracking-tighter ${
-                             feedback.rating === 'Platinum' ? 'text-[#00ff41]' : 
-                             feedback.rating === 'Gold' ? 'text-yellow-400' : 
-                             feedback.rating === 'Trash' ? 'text-red-600' : 'text-gray-400'
-                          }`}>
-                             {feedback.rating}
-                          </span>
-                       </div>
-                       
-                       <div className="bg-[#111] border border-white/20 p-6 shadow-2xl transform rotate-1">
-                          <div className="text-xs text-gray-500 font-bold mb-2 uppercase tracking-widest">Executive Feedback</div>
-                          <p className="text-white font-serif text-lg md:text-xl italic leading-relaxed">
-                             "{feedback.critique}"
-                          </p>
-                          <div className="mt-4 flex justify-center gap-1">
-                             {[...Array(10)].map((_, i) => (
-                                <div key={i} className={`h-2 w-4 rounded-sm ${i < feedback.score ? 'bg-yellow-500' : 'bg-gray-800'}`}></div>
-                             ))}
-                          </div>
-                       </div>
-
-                       {feedback.rating === 'Platinum' && (
-                          <button className="mt-8 bg-[#00ff41] text-black px-6 py-2 font-bold animate-bounce shadow-[0_0_20px_rgba(0,255,65,0.5)]">
-                             PRINT CONTRACT
-                          </button>
-                       )}
-                    </div>
-                 )}
-              </div>
-           </div>
+        <div className="flex-1 flex overflow-hidden">
+          <div className="w-1/2 p-6 border-r border-[#333] flex flex-col">
+             <textarea className="flex-1 bg-black border border-[#333] text-white p-4 font-mono text-sm resize-none focus:border-blue-500 outline-none mb-4" placeholder="Paste lyrics..." value={demoText} onChange={(e) => setDemoText(e.target.value)} />
+             <button onClick={handleReview} disabled={loading} className="bg-blue-600 text-white py-3 font-bold hover:bg-blue-500 uppercase disabled:opacity-50">
+                {loading ? "ANALYZING RHYMES..." : "SUBMIT FOR REVIEW"}
+             </button>
+          </div>
+          <div className="w-1/2 p-6 bg-[#111] overflow-y-auto">
+             {loading && (
+                 <div className="text-blue-500 animate-pulse text-xl font-mono flex flex-col items-center py-10">
+                     <RefreshCw size={32} className="mb-4 animate-spin"/>
+                     A&R IS PROCESSING...
+                 </div>
+             )}
+             {feedback && (
+               <div className="space-y-6">
+                 <div className="flex gap-4 text-center">
+                   <div className="flex-1 bg-black border border-blue-600 p-4"><div className="text-xs text-gray-500">RADIO</div><div className="text-3xl font-black text-white">{feedback.commercial}/10</div></div>
+                   <div className="flex-1 bg-black border border-red-600 p-4"><div className="text-xs text-gray-500">STREETS</div><div className="text-3xl font-black text-white">{feedback.street}/10</div></div>
+                 </div>
+                 <div className="bg-black/50 p-4 border-l-4 border-blue-600 text-sm text-gray-300">{feedback.critique}</div>
+               </div>
+             )}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// 13. NEW: MIX MASTER SUITE (Capstone Feature)
-const MixMaster = () => {
-  const [mode, setMode] = useState('write'); // 'write' | 'produce'
-  
-  // Write Mode State
-  const [acapellaFile, setAcapellaFile] = useState(null);
-  const [lyrics, setLyrics] = useState("");
-  const [rhymeSuggestions, setRhymeSuggestions] = useState([]);
-  const [rhymeLoading, setRhymeLoading] = useState(false);
+// 15. NEW FEATURE: ALBUM ART GENERATOR (Future Cyber Look)
+const AlbumArtGenerator = () => {
+    const [prompt, setPrompt] = useState("A gritty, neon-lit cyberpunk street corner in Red Hook, Brooklyn with a vinyl record.");
+    const [imageUrl, setImageUrl] = useState(null);
+    const [loading, setLoading] = useState(false);
+    
+    const handleGenerate = async () => {
+        if (!prompt.trim()) return;
+        setLoading(true);
+        setImageUrl(null);
+        
+        // Pass "Album Cover" in the prompt to trigger the image generation path in callGemini
+        const fullPrompt = "Album Cover: " + prompt; 
+        
+        const resultString = await callGemini(fullPrompt, "", false);
 
-  // Produce Mode State
-  const [instrumentalFile, setInstrumentalFile] = useState(null);
-  const [prodLyrics, setProdLyrics] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [trackReady, setTrackReady] = useState(false);
-
-  const audioRef = useRef(null);
-
-  // Handler for file uploads
-  const handleFileUpload = (e, type) => {
-    const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      if (type === 'acapella') setAcapellaFile({ name: file.name, url });
-      if (type === 'instrumental') setInstrumentalFile({ name: file.name, url });
-    }
-  };
-
-  // Gemini Rhyme Assist
-  const getRhymes = async () => {
-    const lines = lyrics.split('\n');
-    const lastLine = lines[lines.length - 1];
-    if (!lastLine.trim()) return;
-
-    setRhymeLoading(true);
-    const prompt = `I am writing a rap song. Give me 5 hard, multi-syllabic rhymes for the line: "${lastLine}". Return only the rhyme words/phrases in a comma-separated list.`;
-    const result = await callGemini(prompt, "You are a lyrical assistant.");
-    setRhymeSuggestions(result.split(','));
-    setRhymeLoading(false);
-  };
-
-  // Simulate Song Generation
-  const handleGenerate = () => {
-    if (!instrumentalFile || !prodLyrics) return;
-    setGenerating(true);
-    setGenerationProgress(0);
-    setTrackReady(false);
-
-    const interval = setInterval(() => {
-      setGenerationProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setGenerating(false);
-          setTrackReady(true);
-          return 100;
+        try {
+            const result = JSON.parse(resultString);
+            const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
+            
+            if (base64Data) {
+                const url = `data:image/png;base64,${base64Data}`;
+                setImageUrl(url);
+            } else {
+                 console.error("Image generation failed:", result.error || resultString);
+                 // Fallback image using the mock base64 data to avoid crash
+                 const mockImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+                 setImageUrl(`data:image/png;base64,${mockImageBase64}`);
+            }
+        } catch (e) {
+            console.error("Failed to parse image response:", e);
+            setImageUrl(null);
+             // Use fallback image if parsing fails
+            const mockImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+            setImageUrl(`data:image/png;base64,${mockImageBase64}`);
         }
-        return prev + 2; // 5 seconds approx
-      });
-    }, 100);
-  };
+        setLoading(false);
+    };
 
-  return (
-    <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
-      <BackgroundCarousel images={[]} />
-      <div className="absolute inset-0 bg-black/90 z-10"></div>
-      
-      <div className="relative z-30 w-full max-w-6xl h-[85vh] bg-[#111] border-2 border-[#00ff41] shadow-[0_0_50px_rgba(0,255,65,0.15)] flex flex-col">
-        {/* Header */}
-        <div className="h-16 border-b-2 border-[#00ff41] bg-[#0a0a0a] flex justify-between items-center px-6">
-           <div className="flex items-center gap-3">
-              <Sliders size={24} className="text-[#00ff41]"/>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tighter italic">MIX_MASTER_SUITE_V2.0</h1>
-           </div>
-           <div className="flex gap-2">
-              <button 
-                onClick={() => setMode('write')}
-                className={`px-6 py-2 font-bold font-mono text-xs tracking-widest border ${mode === 'write' ? 'bg-[#00ff41] text-black border-[#00ff41]' : 'text-[#00ff41] border-[#00ff41] hover:bg-[#00ff41]/10'}`}
-              >
-                WRITER_MODE
-              </button>
-              <button 
-                onClick={() => setMode('produce')}
-                className={`px-6 py-2 font-bold font-mono text-xs tracking-widest border ${mode === 'produce' ? 'bg-yellow-500 text-black border-yellow-500' : 'text-yellow-500 border-yellow-500 hover:bg-yellow-500/10'}`}
-              >
-                PRODUCER_MODE
-              </button>
-           </div>
-        </div>
-
-        <div className="flex-1 flex overflow-hidden">
-          
-          {/* --- WRITER MODE --- */}
-          {mode === 'write' && (
-            <div className="flex-1 flex flex-col md:flex-row">
-               {/* Left: Audio Deck */}
-               <div className="w-full md:w-1/3 bg-[#0f0f0f] border-r border-[#333] p-6 flex flex-col gap-6">
-                  <div className="border border-[#333] p-4 bg-black/50 text-center relative group">
-                     <input type="file" accept="audio/*" onChange={(e) => handleFileUpload(e, 'acapella')} className="absolute inset-0 opacity-0 cursor-pointer z-20"/>
-                     <div className="flex flex-col items-center gap-2 text-gray-500 group-hover:text-[#00ff41] transition-colors">
-                        <Upload size={32}/>
-                        <span className="font-mono text-xs font-bold">{acapellaFile ? "REPLACE FILE" : "UPLOAD ACAPELLA / BEAT"}</span>
-                     </div>
-                  </div>
-
-                  {acapellaFile && (
-                    <div className="bg-[#1a1a1a] border border-[#00ff41]/30 p-4 rounded">
-                       <div className="text-[#00ff41] text-xs font-mono mb-2 truncate">{acapellaFile.name}</div>
-                       <audio ref={audioRef} controls src={acapellaFile.url} className="w-full h-8 invert contrast-200" />
-                       <div className="flex justify-between mt-2 text-[10px] text-gray-500 font-mono">
-                          <span>WAVEFORM_VISUALIZER_ACTIVE</span>
-                          <Activity size={12} className="text-[#00ff41] animate-pulse"/>
-                       </div>
+    return (
+        <div className="h-full w-full relative overflow-hidden flex flex-col items-center justify-center p-4">
+            <BackgroundCarousel images={[]} />
+            <div className="absolute inset-0 bg-black/80 z-10"></div>
+            <div className="relative z-20 w-full max-w-4xl h-[85vh] bg-[#1a1a1a] border border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.4)] flex flex-col">
+                <div className="bg-pink-600 text-white px-4 py-2 flex justify-between items-center font-bold">
+                    <span className="flex items-center gap-2"><Camera size={18}/> ALBUM_ART_GENERATOR.EXE</span>
+                </div>
+                
+                <div className="p-6 bg-[#111] border-b border-[#333]">
+                    <h2 className="text-white font-black text-xl mb-2">GENERATE COVER ART</h2>
+                    <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            value={prompt} 
+                            onChange={(e) => setPrompt(e.target.value)} 
+                            placeholder="Describe your album cover..." 
+                            className="flex-1 bg-black border border-[#333] text-white p-3 font-mono outline-none focus:border-pink-500" 
+                            onKeyPress={(e) => e.key === 'Enter' && handleGenerate()} 
+                        />
+                        <button 
+                            onClick={handleGenerate} 
+                            disabled={loading} 
+                            className="bg-pink-600 text-white px-6 font-bold hover:bg-pink-500 uppercase disabled:opacity-50"
+                        >
+                            {loading ? "PROCESSING..." : "GENERATE"}
+                        </button>
                     </div>
-                  )}
-
-                  <div className="flex-1 bg-[#050505] border border-[#333] p-4 overflow-y-auto">
-                     <h3 className="text-white font-bold text-sm mb-3 flex items-center gap-2"><Wand2 size={14} className="text-purple-500"/> GEMINI RHYME ASSIST</h3>
-                     {rhymeSuggestions.length > 0 ? (
-                       <div className="space-y-2">
-                          {rhymeSuggestions.map((rhyme, i) => (
-                            <div key={i} className="bg-[#111] border border-purple-500/30 p-2 text-purple-300 text-xs font-mono cursor-pointer hover:bg-purple-500/20 hover:text-white">
-                               {rhyme.trim()}
-                            </div>
-                          ))}
-                       </div>
-                     ) : (
-                       <div className="text-gray-600 text-xs font-mono italic text-center mt-10">
-                          Type a line in the editor and click "Get Rhymes" to activate AI assistance.
-                       </div>
-                     )}
-                  </div>
-               </div>
-
-               {/* Right: Text Editor */}
-               <div className="flex-1 bg-[#111] flex flex-col relative">
-                  <div className="bg-[#222] px-4 py-2 flex justify-between items-center border-b border-[#333]">
-                     <span className="text-gray-400 text-xs font-mono">UNTITLED_DRAFT.TXT</span>
-                     <button onClick={getRhymes} disabled={rhymeLoading} className="bg-purple-600 text-white px-4 py-1 text-xs font-bold hover:bg-purple-500 disabled:opacity-50 flex items-center gap-2">
-                        {rhymeLoading ? 'ANALYZING...' : <><Sparkles size={12}/> GET RHYMES</>}
-                     </button>
-                  </div>
-                  <textarea 
-                    value={lyrics}
-                    onChange={(e) => setLyrics(e.target.value)}
-                    placeholder="Start writing your bars here..."
-                    className="flex-1 bg-[#0a0a0a] text-gray-300 p-8 font-mono text-lg outline-none resize-none leading-relaxed"
-                    spellCheck="false"
-                  />
-               </div>
-            </div>
-          )}
-
-          {/* --- PRODUCER MODE --- */}
-          {mode === 'produce' && (
-             <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
-                {/* Background FX */}
-                <div className="absolute inset-0 opacity-20 pointer-events-none">
-                   <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.15)_0%,transparent_70%)]"></div>
-                   <div className="grid grid-cols-12 h-full w-full opacity-10">
-                      {[...Array(12)].map((_, i) => <div key={i} className="border-r border-yellow-500/20 h-full"></div>)}
-                   </div>
                 </div>
 
-                {!trackReady ? (
-                  <div className="w-full max-w-2xl z-10 space-y-8 p-8">
-                     <div className="grid grid-cols-2 gap-6">
-                        {/* Slot 1: Instrumental */}
-                        <div className="border-2 border-dashed border-yellow-600/50 bg-[#0a0a0a] h-48 flex flex-col items-center justify-center relative hover:border-yellow-500 hover:bg-yellow-900/10 transition-all group">
-                           <input type="file" accept="audio/*" onChange={(e) => handleFileUpload(e, 'instrumental')} className="absolute inset-0 opacity-0 cursor-pointer z-20"/>
-                           <Music4 size={48} className={`mb-4 ${instrumentalFile ? 'text-yellow-500' : 'text-gray-600 group-hover:text-yellow-500'}`}/>
-                           <div className="text-center">
-                              <div className="font-black text-white uppercase tracking-widest mb-1">
-                                 {instrumentalFile ? "TRACK LOADED" : "UPLOAD BEAT"}
-                              </div>
-                              <div className="text-[10px] font-mono text-gray-500">{instrumentalFile ? instrumentalFile.name : "DRAG & DROP OR CLICK"}</div>
-                           </div>
+                <div className="flex-1 overflow-y-auto p-6 bg-[#0a0a0a] flex items-center justify-center">
+                    {loading && (
+                        <div className="text-pink-500 animate-pulse text-xl font-mono flex flex-col items-center">
+                            <RefreshCw size={32} className="mb-4 animate-spin"/>
+                            SCANNING THE GRID FOR IMAGES...
                         </div>
-
-                        {/* Slot 2: Lyrics */}
-                        <div className="border-2 border-dashed border-yellow-600/50 bg-[#0a0a0a] h-48 flex flex-col relative hover:border-yellow-500 transition-all">
-                           <div className="absolute top-0 left-0 bg-yellow-600 text-black text-[10px] font-bold px-2 py-1">LYRIC INPUT</div>
-                           <textarea 
-                             value={prodLyrics}
-                             onChange={(e) => setProdLyrics(e.target.value)}
-                             placeholder="Paste your lyrics here for synthesis..."
-                             className="w-full h-full bg-transparent text-white p-4 pt-8 font-mono text-xs outline-none resize-none"
-                           />
+                    )}
+                    {imageUrl && !loading && (
+                        <div className="w-96 h-96 border-4 border-white shadow-[0_0_20px_rgba(236,72,153,0.5)] relative">
+                            <img src={imageUrl} alt="Generated Album Art" className="w-full h-full object-cover"/>
+                            <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono px-2 py-1">RESULT: {prompt.substring(0, 30)}...</div>
+                            <button onClick={() => window.open(imageUrl, '_blank')} className="absolute bottom-2 right-2 bg-[#00ff41] text-black text-xs font-bold px-3 py-1 hover:bg-white transition-colors">SAVE IMAGE</button>
                         </div>
-                     </div>
-
-                     {/* Action Area */}
-                     <div className="relative">
-                        {generating ? (
-                          <div className="bg-[#111] border border-yellow-600 p-6">
-                             <div className="flex justify-between text-yellow-500 font-mono text-xs mb-2">
-                                <span className="animate-pulse">SYNTHESIZING VOCALS...</span>
-                                <span>{generationProgress}%</span>
-                             </div>
-                             <div className="w-full h-4 bg-[#000] border border-[#333]">
-                                <div className="h-full bg-yellow-600 transition-all duration-100" style={{width: `${generationProgress}%`}}></div>
-                             </div>
-                             <div className="mt-2 text-[10px] text-gray-500 font-mono">
-                                {'>'} MATCHING BPM... <br/>
-                                {'>'} APPLYING LO-FI FILTER... <br/>
-                                {'>'} RENDERING MONTEZ_VOX_MODEL_V2...
-                             </div>
-                          </div>
-                        ) : (
-                          <button 
-                            onClick={handleGenerate}
-                            disabled={!instrumentalFile || !prodLyrics}
-                            className="w-full bg-yellow-600 text-black h-16 font-black text-xl tracking-[0.2em] hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
-                          >
-                             <Zap size={24} fill="black"/> GENERATE TRACK
-                          </button>
-                        )}
-                     </div>
-                  </div>
-                ) : (
-                  <div className="w-full max-w-xl bg-[#0a0a0a] border-2 border-yellow-500 p-8 text-center z-10 shadow-[0_0_50px_rgba(234,179,8,0.2)]">
-                     <CheckCircle size={64} className="text-yellow-500 mx-auto mb-6"/>
-                     <h2 className="text-3xl font-black text-white italic mb-2">TRACK COMPLETE</h2>
-                     <p className="text-gray-400 font-mono text-sm mb-8">AI_VOCAL_SYNTHESIS_SUCCESSFUL // READY_FOR_PLAYBACK</p>
-                     
-                     <div className="bg-[#111] p-4 border border-[#333] mb-6 flex items-center gap-4">
-                        <div className="w-12 h-12 bg-yellow-600 flex items-center justify-center">
-                           <Play size={24} className="text-black fill-black"/>
+                    )}
+                    {!imageUrl && !loading && (
+                        <div className="text-gray-600 text-center font-mono text-sm">
+                            <Camera size={48} className="mx-auto mb-4 text-gray-700"/>
+                            AWAITING ART GENERATION REQUEST.
                         </div>
-                        <div className="text-left flex-1">
-                           <div className="text-white font-bold">NEW_TRACK_01.MP3</div>
-                           <div className="text-xs text-gray-500 font-mono">03:42 // 192KBPS</div>
-                        </div>
-                        <div className="text-yellow-500 font-mono text-xs animate-pulse">PLAYING</div>
-                     </div>
-
-                     <button onClick={() => setTrackReady(false)} className="text-gray-500 hover:text-white underline text-xs font-mono">START OVER</button>
-                  </div>
-                )}
-             </div>
-          )}
-
+                    )}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-// 14. UPDATED: STUDIO HUB (Linking to MixMaster & AR Office)
+// 18. NEW FEATURE: SOCIAL MEDIA MUSIC VIDEO AI AGENT
+const ViralVideoAgent = () => {
+    const [trackIdea, setTrackIdea] = useState("");
+    const [concepts, setConcepts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [isWhipMode, setIsWhipMode] = useState(false);
+
+    const handleGenerate = async () => {
+        if (!trackIdea.trim()) return;
+        setLoading(true);
+        setConcepts([]);
+
+        let prompt = isWhipMode
+            ? `Generate video ideas for a Whip Montez track based on: ${trackIdea}`
+            : `Generate general music video ideas based on: ${trackIdea}`;
+        
+        let systemPrompt = "You are the Viral Video Agent (VVA) for Livewire Entertainment, specializing in short-form social media video trends (TikTok, Reels). Given a track idea, generate a JSON array of 3 distinct music video concepts designed for maximum viral impact. Format: [{ 'concept': 'Short Title', 'visual': 'Brief visual description', 'trend': 'Current Trend Style (e.g., POV, Seamless Transition)', 'shots': ['Shot 1', 'Shot 2'] }]. Do not use markdown backticks or formatting outside the JSON array.";
+
+        if (isWhipMode) {
+             systemPrompt = "You are the Viral Video Agent (VVA) for Livewire Entertainment. Generate 3 concepts focused on Whip Montez's 2004 aesthetic (NYC, boom-bap, red hook) but optimized for 2025 social media trends. JSON output only.";
+        }
+
+        const responseText = await callGemini(prompt, systemPrompt);
+
+        try {
+            const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsedConcepts = JSON.parse(cleanJson);
+            setConcepts(parsedConcepts);
+        } catch (e) {
+            console.error("Failed to parse VVA response:", e);
+            setConcepts([{ concept: "ERROR", visual: "Failed to load concepts. Check API status.", trend: "SYSTEM FAIL", shots: ["System Failure"] }]);
+        }
+        setLoading(false);
+    };
+    
+    const handleUpload = (platform) => {
+        // Simple simulation of an upload action
+        alert(`Simulating upload of current concept to ${platform}...\nStatus: Publishing concept to Livewire servers.`);
+    }
+
+
+    return (
+        <div className="h-full w-full relative overflow-hidden flex flex-col items-center justify-center p-4">
+            <BackgroundCarousel images={[]} />
+            <div className="absolute inset-0 bg-black/80 z-10"></div>
+            <div className="relative z-20 w-full max-w-5xl h-[85vh] bg-[#1a1a1a] border border-cyan-500 shadow-[0_0_30px_rgba(0,255,255,0.4)] flex flex-col">
+                <div className="bg-cyan-700 text-white px-4 py-2 flex justify-between items-center font-bold">
+                    <span className="flex items-center gap-2"><TrendingUp size={18}/> VIRAL_VIDEO_AGENT.EXE</span>
+                </div>
+                
+                <div className="p-6 bg-[#111] border-b border-[#333]">
+                    <h2 className="text-white font-black text-xl mb-2">GENERATE VIRAL CONCEPTS</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-xs font-mono text-gray-400">
+                             MODE: 
+                             <button onClick={() => setIsWhipMode(!isWhipMode)} className="flex items-center gap-1 border border-cyan-800 px-2 py-0.5 bg-black hover:border-cyan-500 transition-colors">
+                                {isWhipMode ? <ToggleRight size={16} className="text-cyan-500"/> : <ToggleLeft size={16} className="text-gray-500"/>}
+                                {isWhipMode ? "WHIP MONTEZ SPECIFIC" : "GENERAL TRENDS"}
+                             </button>
+                        </div>
+                        <button onClick={() => setConcepts([])} className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1">
+                            <Trash2 size={12}/> CLEAR RESULTS
+                        </button>
+                    </div>
+                    <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            value={trackIdea} 
+                            onChange={(e) => setTrackIdea(e.target.value)} 
+                            placeholder={isWhipMode ? "Enter key elements of your new Whip Montez track..." : "Enter track mood or title for general concepts..."} 
+                            className="flex-1 bg-black border border-cyan-800 text-white p-3 font-mono outline-none focus:border-cyan-500" 
+                            onKeyPress={(e) => e.key === 'Enter' && handleGenerate()} 
+                        />
+                        <button 
+                            onClick={handleGenerate} 
+                            disabled={loading} 
+                            className="bg-cyan-600 text-black px-6 font-bold hover:bg-cyan-500 uppercase disabled:opacity-50"
+                        >
+                            {loading ? "ANALYZING..." : "GENERATE CONCEPTS"}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 bg-[#0a0a0a] space-y-6">
+                    {loading && (
+                        <div className="text-cyan-400 animate-pulse text-xl font-mono flex flex-col items-center py-10">
+                            <RefreshCw size={32} className="mb-4 animate-spin"/>
+                            SCANNING VIRAL TRENDS...
+                        </div>
+                    )}
+                    {concepts.length > 0 && !loading && (
+                        <div className="space-y-6">
+                            <h3 className="text-cyan-400 font-bold text-lg border-b border-cyan-800 pb-2">RECOMMENDED VIRAL CONCEPTS ({concepts.length})</h3>
+                            
+                            {/* Upload Buttons */}
+                            <div className="flex gap-4">
+                                <span className="text-xs font-mono text-gray-500 pt-3">DISTRIBUTE CONCEPT TO:</span>
+                                <button onClick={() => handleUpload("TikTok")} className="bg-white text-black font-bold text-xs px-3 py-1.5 hover:bg-gray-200">TIKTOK</button>
+                                <button onClick={() => handleUpload("Instagram")} className="bg-white text-black font-bold text-xs px-3 py-1.5 hover:bg-gray-200">INSTAGRAM REELS</button>
+                                <button onClick={() => handleUpload("Facebook")} className="bg-white text-black font-bold text-xs px-3 py-1.5 hover:bg-gray-200">FACEBOOK SHORTS</button>
+                            </div>
+                            
+                            {concepts.map((concept, index) => (
+                                <div key={index} className="bg-[#111] border border-cyan-900 p-4 shadow-md">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h4 className="text-white font-black text-xl flex items-center gap-2">
+                                            {concept.concept}
+                                            <span className="text-xs text-black bg-cyan-400 font-bold px-2 py-0.5">{concept.trend}</span>
+                                        </h4>
+                                    </div>
+                                    <p className="text-gray-400 text-sm italic mb-3">{concept.visual}</p>
+                                    <div className="mt-3">
+                                        <h5 className="text-cyan-500 text-xs font-bold uppercase mb-1">KEY SHOTS:</h5>
+                                        <ul className="text-gray-500 text-xs space-y-0.5 list-disc list-inside">
+                                            {concept.shots.map((shot, i) => <li key={i}>{shot}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {!concepts.length && !loading && (
+                        <div className="text-gray-600 text-center font-mono text-sm py-10">
+                            <TrendingUp size={48} className="mx-auto mb-4 text-gray-700"/>
+                            AGENT READY. ENTER A TRACK IDEA ABOVE.
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// 16. STUDIO HUB - Cleaned up to reflect remaining features (2025 Future Look)
 const StudioHub = ({ setSection }) => {
   return (
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      
-      <div className="relative z-30 w-full max-w-6xl h-[85vh] flex flex-col gap-6">
-         <div className="text-center shrink-0">
-            <h1 className="text-5xl md:text-7xl font-black chrome-text tracking-tighter mb-2">THE LAB</h1>
-            <p className="text-[#00ff41] font-mono tracking-[0.5em] text-sm">SELECT YOUR WEAPON</p>
+      <div className="relative z-30 w-full max-w-6xl h-[85vh] flex flex-col justify-center items-center gap-8">
+         <div className="text-center">
+            <h1 className="text-5xl md:text-7xl font-black chrome-text tracking-tighter mb-2" style={{ textShadow: '2px 2px 0px #000, 0 0 20px rgba(0,180,255,0.4)' }}>THE LAB</h1>
+            <p className="text-cyan-400 font-mono tracking-[0.5em] text-sm">LIVEWIRE FUTURE SUITE (2025)</p>
          </div>
-
-         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-0">
-            {/* Cipher Card */}
-            <div 
-              onClick={() => setSection('battle')}
-              className="bg-[#111] border-2 border-red-900 p-6 flex flex-col items-center text-center hover:border-red-500 hover:bg-red-900/10 transition-all cursor-pointer group justify-center relative overflow-hidden"
-            >
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
-               <Flame size={48} className="text-red-600 mb-4 group-hover:scale-110 transition-transform relative z-10"/>
-               <h2 className="text-xl font-black text-white uppercase mb-1 relative z-10">The Cipher</h2>
-               <p className="text-gray-400 text-[10px] font-mono relative z-10 group-hover:text-red-200">Battle against the AI MC.</p>
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full overflow-y-auto p-4 custom-scrollbar">
+            
+            {/* CORE AI TOOLS */}
+            <div onClick={() => setSection('ar_suite')} className="group bg-[#111] border-2 border-blue-900 p-6 flex flex-col items-center text-center hover:border-blue-500 cursor-pointer h-64 justify-center shadow-lg hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] transition-all">
+               <Briefcase size={48} className="text-blue-500 mb-4 group-hover:text-blue-400 transition-colors"/>
+               <h2 className="text-xl font-black text-white uppercase">A&R Suite</h2>
+               <p className="text-[10px] text-gray-600 mt-2 font-mono">AI LYRIC ANALYSIS</p>
+            </div>
+            
+            <div onClick={() => setSection('battle')} className="group bg-[#111] border-2 border-red-900 p-6 flex flex-col items-center text-center hover:border-red-500 cursor-pointer h-64 justify-center shadow-lg hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transition-all">
+               <Flame size={48} className="text-red-600 mb-4 group-hover:text-red-400 transition-colors"/>
+               <h2 className="text-xl font-black text-white uppercase">The Cipher</h2>
+               <p className="text-[10px] text-gray-600 mt-2 font-mono">FREESTYLE BATTLE SIM</p>
             </div>
 
-            {/* Crates Card */}
-            <div 
-              onClick={() => setSection('crates')}
-              className="bg-[#111] border-2 border-yellow-900 p-6 flex flex-col items-center text-center hover:border-yellow-500 hover:bg-yellow-900/10 transition-all cursor-pointer group justify-center relative overflow-hidden"
-            >
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
-               <Disc size={48} className="text-yellow-600 mb-4 group-hover:scale-110 transition-transform relative z-10"/>
-               <h2 className="text-xl font-black text-white uppercase mb-1 relative z-10">Crate Digger</h2>
-               <p className="text-gray-400 text-[10px] font-mono relative z-10 group-hover:text-yellow-200">Hunt for obscure samples.</p>
+            <div onClick={() => setSection('album_art')} className="group bg-[#111] border-2 border-pink-900 p-6 flex flex-col items-center text-center hover:border-pink-500 cursor-pointer h-64 justify-center shadow-lg hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] transition-all">
+               <Camera size={48} className="text-pink-500 mb-4 group-hover:text-pink-400 transition-colors"/>
+               <h2 className="text-xl font-black text-white uppercase">Album Art Generator</h2>
+               <p className="text-[10px] text-gray-600 mt-2 font-mono">AI IMAGE GENERATION</p>
+            </div>
+            
+            <div onClick={() => setSection('crates')} className="group bg-[#111] border-2 border-yellow-900 p-6 flex flex-col items-center text-center hover:border-yellow-500 cursor-pointer h-64 justify-center shadow-lg hover:shadow-[0_0_30px_rgba(250,204,21,0.6)] transition-all">
+               <Disc size={48} className="text-yellow-600 mb-4 group-hover:text-yellow-400 transition-colors"/>
+               <h2 className="text-xl font-black text-white uppercase">Crate Digger</h2>
+               <p className="text-[10px] text-gray-600 mt-2 font-mono">SAMPLE FINDER</p>
+            </div>
+            
+            <div onClick={() => setSection('ghostwriter')} className="group bg-[#111] border-2 border-cyan-800 p-6 flex flex-col items-center text-center hover:border-cyan-500 cursor-pointer h-64 justify-center shadow-lg hover:shadow-[0_0_30px_rgba(0,180,255,0.6)] transition-all">
+               <Mic size={48} className="text-cyan-500 mb-4 group-hover:text-cyan-400 transition-colors"/>
+               <h2 className="text-xl font-black text-white uppercase">Ghostwriter</h2>
+               <p className="text-[10px] text-gray-600 mt-2 font-mono">LYRIC RECOVERY TOOL</p>
             </div>
 
-            {/* Lyric Card */}
-            <div 
-              onClick={() => setSection('ghostwriter')}
-              className="bg-[#111] border-2 border-[#00ff41]/30 p-6 flex flex-col items-center text-center hover:border-[#00ff41] hover:bg-[#00ff41]/10 transition-all cursor-pointer group justify-center relative overflow-hidden"
-            >
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
-               <Mic size={48} className="text-[#00ff41] mb-4 group-hover:scale-110 transition-transform relative z-10"/>
-               <h2 className="text-xl font-black text-white uppercase mb-1 relative z-10">Ghostwriter</h2>
-               <p className="text-gray-400 text-[10px] font-mono relative z-10 group-hover:text-[#00ff41]">Recover lost lyrics.</p>
-            </div>
-
-            {/* NEW: A&R Office Card */}
-            <div 
-              onClick={() => setSection('ar_office')}
-              className="bg-[#111] border-2 border-gray-600 p-6 flex flex-col items-center text-center hover:border-white hover:bg-white/10 transition-all cursor-pointer group justify-center relative overflow-hidden"
-            >
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
-               <Briefcase size={48} className="text-gray-400 mb-4 group-hover:scale-110 group-hover:text-white transition-all relative z-10"/>
-               <h2 className="text-xl font-black text-white uppercase mb-1 relative z-10">A&R Office</h2>
-               <p className="text-gray-400 text-[10px] font-mono relative z-10 group-hover:text-white">Get Signed or Get Dropped. ✨</p>
-            </div>
-         </div>
-
-         {/* CAPSTONE: MIX MASTER BANNER */}
-         <div 
-            onClick={() => setSection('mix_master')}
-            className="h-32 bg-gradient-to-r from-gray-900 via-[#111] to-gray-900 border-2 border-white/20 hover:border-[#00ff41] hover:shadow-[0_0_30px_rgba(0,255,65,0.2)] transition-all cursor-pointer flex items-center justify-between px-12 group relative overflow-hidden"
-         >
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-30"></div>
-            <div className="relative z-10 flex items-center gap-6">
-               <div className="w-16 h-16 bg-[#00ff41] flex items-center justify-center rounded-full group-hover:scale-110 transition-transform">
-                  <Headphones size={32} className="text-black"/>
-               </div>
-               <div className="text-left">
-                  <h2 className="text-3xl font-black text-white italic tracking-tighter group-hover:text-[#00ff41] transition-colors">MIX MASTER SUITE</h2>
-                  <p className="text-gray-400 font-mono text-xs tracking-widest">VOCAL RECORDING // AI PRODUCTION TOOLS</p>
-               </div>
-            </div>
-            <div className="relative z-10 hidden md:block">
-               <button className="bg-white text-black px-6 py-2 font-bold font-mono text-xs uppercase tracking-widest hover:bg-[#00ff41] transition-colors">ENTER STUDIO</button>
+            {/* NEW VVA AGENT */}
+            <div onClick={() => setSection('viral_video')} className="group bg-[#111] border-2 border-green-700 p-6 flex flex-col items-center text-center hover:border-green-500 cursor-pointer h-64 justify-center shadow-lg hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all">
+               <TrendingUp size={48} className="text-green-500 mb-4 group-hover:text-green-400 transition-colors"/>
+               <h2 className="text-xl font-black text-white uppercase">Viral Video Agent</h2>
+               <p className="text-[10px] text-gray-600 mt-2 font-mono">SOCIAL MEDIA CONCEPTS</p>
             </div>
          </div>
       </div>
@@ -2088,60 +2232,84 @@ const StudioHub = ({ setSection }) => {
   );
 };
 
-// 15. MAIN OS SHELL (Updated Navigation)
-const OSInterface = () => {
+// 17. MAIN OS SHELL
+const OSInterface = ({ reboot }) => {
   const [activeSection, setActiveSection] = useState('home');
   const [time, setTime] = useState(new Date().toLocaleTimeString());
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // The boot sequence is handled in App, so we don't need to setBooted here.
-    const clockTimer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
-    return () => clearInterval(clockTimer);
+    // 1. Start System Clock
+    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
+
+    // 2. Initialize Auth
+    let unsubscribe = () => {};
+
+    const initAuth = async () => {
+      // If no auth instance (Offline/Demo mode)
+      if (!auth) {
+        console.log("OS running in Offline/Demo Mode");
+        setUser({ uid: "guest", isAnonymous: true });
+        return;
+      }
+
+      // If auth exists, set up listener and sign in
+      try {
+        unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+             // Fallback if auth state is null but auth object exists (rare)
+             setUser(null); 
+          }
+        });
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Authentication failed:", error);
+        setUser({ uid: "guest", isAnonymous: true });
+      }
+    };
+
+    initAuth();
+    
+    return () => { 
+      clearInterval(timer); 
+      if (unsubscribe) unsubscribe(); 
+    };
   }, []);
 
   return (
     <div className="flex flex-col h-screen w-full relative z-10">
-      {/* Top Bar */}
       <div className="h-10 bg-[#111] border-b border-[#333] flex items-center justify-between px-4 select-none overflow-x-auto">
         <div className="flex items-center gap-4 min-w-max">
-          <div className="flex items-center gap-2 text-[#00ff41] font-bold">
-            <Cpu size={16} /> 
-            <span className="hidden md:inline">SYSTEM_READY</span>
-          </div>
+          <div className="flex items-center gap-2 text-[#00ff41] font-bold"><Cpu size={16} /> <span className="hidden md:inline">SYSTEM_READY</span></div>
           <div className="h-4 w-[1px] bg-[#333]"></div>
           <nav className="flex gap-1">
             {['home', 'bio', 'music', 'tour', 'style', 'community', 'news'].map(section => (
-              <button 
-                key={section}
-                onClick={() => setActiveSection(section)} 
-                className={`px-3 py-1 text-xs font-mono uppercase transition-colors ${activeSection === section ? 'bg-[#00ff41] text-black' : 'text-gray-400 hover:text-white'}`}
-              >
+              <button key={section} onClick={() => setActiveSection(section)} className={`px-3 py-1 text-xs font-mono uppercase transition-colors ${activeSection === section ? 'bg-[#00ff41] text-black' : 'text-gray-400 hover:text-white'}`}>
                 {section === 'music' ? 'Lost_Tapes' : section === 'style' ? 'Merch' : section === 'community' ? 'The_Block' : section}
               </button>
             ))}
             <div className="h-4 w-[1px] bg-[#333] mx-1"></div>
-            <button onClick={() => setActiveSection('studio')} className={`px-3 py-1 text-xs font-mono uppercase transition-colors flex items-center gap-1 ${['studio', 'battle', 'crates', 'ghostwriter', 'mix_master', 'ar_office'].includes(activeSection) ? 'bg-yellow-600 text-black' : 'text-gray-400 hover:text-white'}`}><Grid size={10} /> STUDIO</button>
+            <button onClick={() => setActiveSection('studio')} className={`px-3 py-1 text-xs font-mono uppercase transition-colors flex items-center gap-1 ${['studio', 'battle', 'crates', 'ghostwriter', 'ar_suite', 'album_art', 'viral_video'].includes(activeSection) ? 'bg-yellow-600 text-black' : 'text-gray-400 hover:text-white'}`}><Grid size={10} /> STUDIO</button>
           </nav>
         </div>
-        <div className="flex items-center gap-4 text-xs font-mono text-[#00ff41] ml-4">
-          <span className="animate-pulse hidden md:inline">CONN: SECURE</span>
-          <span>{time}</span>
+        <div className="flex items-center gap-4 text-xs font-mono ml-4">
+          <button onClick={reboot} className="text-red-500 hover:text-red-400 flex items-center gap-1"><Power size={14}/></button>
+          <span className="text-[#00ff41]">{time}</span>
         </div>
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 relative overflow-hidden bg-black">
         <div className="absolute inset-2 border border-[#333] flex flex-col bg-[#050505]">
           <div className="h-8 bg-[#1a1a1a] border-b border-[#333] flex items-center justify-between px-2">
-            <div className="text-xs text-gray-400 font-mono flex items-center gap-2">
-              <Terminal size={12} />
-              C:\WHIP_MONTEZ\{activeSection.toUpperCase()}.EXE
-            </div>
-            <div className="flex gap-2">
-              <Minus size={12} className="text-gray-500 cursor-pointer" />
-              <Maximize2 size={12} className="text-gray-500 cursor-pointer" />
-              <X size={12} className="text-gray-500 cursor-pointer" />
-            </div>
+            <div className="text-xs text-gray-400 font-mono flex items-center gap-2"><Terminal size={12} /> C:\WHIP_MONTEZ\{activeSection.toUpperCase()}.EXE</div>
+            <div className="flex gap-2"><Minus size={12} className="text-gray-500"/><Maximize2 size={12} className="text-gray-500"/><X size={12} className="text-gray-500"/></div>
           </div>
           
           <div className="flex-1 relative overflow-hidden">
@@ -2152,23 +2320,20 @@ const OSInterface = () => {
             {activeSection === 'style' && <StyleArchive />}
             {activeSection === 'community' && <CommunityHub setSection={setActiveSection} />}
             {activeSection === 'studio' && <StudioHub setSection={setActiveSection} />}
-            {/* Sub-sections accessed via StudioHub or direct links */}
             {activeSection === 'ghostwriter' && <Ghostwriter />}
             {activeSection === 'chat' && <SidekickChat />}
             {activeSection === 'battle' && <RapBattle />}
             {activeSection === 'crates' && <CrateDigger />}
-            {activeSection === 'ar_office' && <AROffice />}
             {activeSection === 'news' && <NewsArchive />}
-            {activeSection === 'mix_master' && <MixMaster />}
+            {activeSection === 'ar_suite' && <ARSuite />}
+            {activeSection === 'album_art' && <AlbumArtGenerator />}
+            {activeSection === 'viral_video' && <ViralVideoAgent />}
           </div>
         </div>
       </div>
 
-      {/* Footer Ticker */}
       <div className="h-6 bg-[#00ff41] text-black text-xs font-mono flex items-center overflow-hidden border-t border-[#00ff41]">
-         <div className="animate-marquee whitespace-nowrap uppercase font-bold">
-            *** BREAKING: UNRELEASED TRACKS FOUND IN RED HOOK BASEMENT *** TOUR DATES LEAKED FROM 2004 *** WHIP MONTEZ SIGHTING CONFIRMED AT BODEGA *** SYSTEM RESTORATION AT 99% ***
-         </div>
+         <div className="animate-marquee whitespace-nowrap uppercase font-bold">*** BREAKING: UNRELEASED TRACKS FOUND IN RED HOOK BASEMENT *** TOUR DATES LEAKED FROM 2004 *** WHIP MONTEZ SIGHTING CONFIRMED AT BODEGA *** SYSTEM RESTORATION AT 99% ***</div>
       </div>
     </div>
   );
@@ -2180,152 +2345,39 @@ export default function App() {
   return (
     <div className="relative w-full h-screen bg-black text-white selection:bg-[#00ff41] selection:text-black font-sans">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Anton&family=Inter:wght@400;800&family=Comic+Neue:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Anton&family=Inter:wght@400;800&family=Comic+Neue:wght@700&family=Permanent+Marker&display=swap');
         
-        :root {
-          --neon-green: #00ff41;
-          --dark-bg: #050505;
-          --chrome-1: #e0e0e0;
-          --chrome-2: #8a8a8a;
-          --chrome-3: #ffffff;
-        }
-
-        /* --- SCROLLBAR STYLING --- */
-        ::-webkit-scrollbar {
-          width: 10px;
-          height: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-          background: #050505;
-          border-left: 1px solid #333;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-          background: #1a1a1a;
-          border: 1px solid #333;
-          border-radius: 0;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-          background: #00ff41;
-          border: 1px solid #00ff41;
-          box-shadow: 0 0 10px #00ff41;
-        }
-
-        .crt-overlay {
-          background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-          background-size: 100% 2px, 3px 100%;
-          pointer-events: none;
-          z-index: 60;
-        }
-
-        .scanline {
-          width: 100%;
-          height: 100px;
-          z-index: 55;
-          background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0, 255, 65, 0.1) 50%, rgba(0,0,0,0) 100%);
-          opacity: 0.1;
-          position: absolute;
-          bottom: 100%;
-          animation: scanline 10s linear infinite;
-          pointer-events: none;
-        }
-
-        @keyframes scanline {
-          0% { bottom: 100%; }
-          100% { bottom: -100px; }
-        }
-
-        .chrome-text {
-          font-family: 'Anton', sans-serif;
-          background: linear-gradient(to bottom, var(--chrome-3) 0%, var(--chrome-1) 50%, var(--chrome-2) 51%, var(--chrome-3) 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          text-shadow: 0px 2px 0px rgba(0,0,0,0.5);
-          -webkit-text-stroke: 1px rgba(255,255,255,0.4);
-          letter-spacing: -0.02em;
-        }
-
-        .y2k-enhanced-image {
-          filter: contrast(1.3) saturate(1.2) sepia(0.3) brightness(0.8) hue-rotate(-10deg);
-          mix-blend-mode: luminosity;
-        }
-
-        .ken-burns-anim {
-          animation: kenBurns 20s infinite alternate ease-in-out;
-        }
-
-        @keyframes kenBurns {
-          0% { transform: scale(1) translate(0, 0); }
-          100% { transform: scale(1.2) translate(-3%, -2%); }
-        }
-
-        .typing-cursor::after {
-          content: '█';
-          animation: blink 1s infinite;
-        }
-
+        :root { --neon-green: #00ff41; --dark-bg: #050505; --chrome-1: #e0e0e0; --chrome-2: #8a8a8a; --chrome-3: #ffffff; }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #050505; border-left: 1px solid #333; }
+        ::-webkit-scrollbar-thumb { background: #1a1a1a; border: 1px solid #333; border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff41; border: 1px solid #00ff41; box-shadow: 0 0 10px #00ff41; }
+        .crt-overlay { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%; pointer-events: none; z-index: 60; }
+        .scanline { width: 100%; height: 100px; z-index: 55; background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0, 255, 65, 0.1) 50%, rgba(0,0,0,0) 100%); opacity: 0.1; position: absolute; bottom: 100%; animation: scanline 10s linear infinite; pointer-events: none; }
+        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100px; } }
+        .chrome-text { font-family: 'Anton', sans-serif; background: linear-gradient(to bottom, var(--chrome-3) 0%, var(--chrome-1) 50%, var(--chrome-2) 51%, var(--chrome-3) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0px 2px 0px rgba(0,0,0,0.5); -webkit-text-stroke: 1px rgba(255,255,255,0.4); letter-spacing: -0.02em; }
+        .ken-burns-anim { animation: kenBurns 20s infinite alternate ease-in-out; }
+        @keyframes kenBurns { 0% { transform: scale(1) translate(0, 0); } 100% { transform: scale(1.2) translate(-3%, -2%); } }
+        .typing-cursor::after { content: '█'; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-        .equalizer-bar {
-          animation: equalize 1s infinite;
-        }
-
-        @keyframes equalize {
-          0% { height: 20%; }
-          50% { height: 100%; }
-          100% { height: 20%; }
-        }
-
-        .animate-marquee {
-          animation: marquee 15s linear infinite;
-        }
-        
-        .animate-spin-slow {
-          animation: spin 3s linear infinite;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        @keyframes marquee {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-        
-        .glitch-text {
-          animation: glitch 0.5s infinite;
-        }
-        
-        @keyframes glitch {
-          0% { transform: translate(0) }
-          20% { transform: translate(-2px, 2px) }
-          40% { transform: translate(-2px, -2px) }
-          60% { transform: translate(2px, 2px) }
-          80% { transform: translate(2px, -2px) }
-          100% { transform: translate(0) }
-        }
-        
-        .animate-slide-up {
-          animation: slideUp 0.5s ease-out forwards;
-        }
-        
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        .animate-marquee { animation: marquee 15s linear infinite; }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .glitch-text { animation: glitch 0.5s infinite; }
+        @keyframes glitch { 0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) } 40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) } 80% { transform: translate(2px, -2px) } 100% { transform: translate(0) } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .animate-slide-in-right { animation: slideInRight 0.3s ease-out; }
+        .font-handwriting { font-family: 'Permanent Marker', cursive; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
       `}</style>
-
       <div className="absolute inset-0 z-[100] pointer-events-none overflow-hidden">
         <div className="crt-overlay absolute inset-0"></div>
         <div className="scanline"></div>
         <div className="absolute inset-0 bg-black opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
       </div>
-
-      {!booted ? <BootSequence onComplete={() => setBooted(true)} /> : <OSInterface />}
+      {!booted ? <BootSequence onComplete={() => setBooted(true)} /> : <OSInterface reboot={() => setBooted(false)} />}
     </div>
   );
 }
