@@ -1,0 +1,43 @@
+name: Node CI - Build Frontend
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install frontend deps
+        run: |
+          cd frontend; npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend; npm run build
+
+      - name: List build output
+        run: |
+          ls -la frontend/dist || true
+
+      - name: Install backend deps (no server run)
+        run: |
+          cd backend; npm ci
+
+      - name: Check backend env (non-failing)
+        run: |
+          node backend/check_env.js
