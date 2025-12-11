@@ -117,8 +117,9 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`> Server running on http://localhost:${PORT}`);
+const HOST = '0.0.0.0'; // Bind to all interfaces for Railway
+const server = app.listen(PORT, HOST, () => {
+  console.log(`> Server running on http://${HOST}:${PORT}`);
   console.log('> Uplink Ready.');
 });
 
