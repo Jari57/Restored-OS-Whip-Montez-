@@ -996,6 +996,18 @@ const MusicPlayer = () => {
           {/* Alpine-style Deck */}
           <div className="p-6 bg-[#111] border-b border-[#333]">
              <div className="bg-[#0f281f] border-2 border-[#333] rounded-sm p-4 shadow-inner relative overflow-hidden h-32 flex flex-col justify-between mb-4">
+                {/* Loading Overlay */}
+                {audioLoading && (
+                  <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 animate-pulse">
+                    <Disc size={32} className="text-emerald-400 animate-spin mb-2" style={{ animationDuration: '1s' }} />
+                    <div className="text-emerald-400 text-xs font-mono tracking-wider">LOADING AUDIO...</div>
+                    <div className="flex gap-1 mt-2">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="w-1 h-1 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }}></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.1)_50%,rgba(0,0,0,0)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
                 <div className="flex justify-between text-[10px] text-emerald-600/60 font-mono">
                     <span>SRC: TAPE</span>
@@ -1023,7 +1035,9 @@ const MusicPlayer = () => {
                 <button className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"><Rewind size={16}/></button>
                 <button 
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"
+                  className={`bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center transition-colors ${
+                    audioLoading ? 'text-emerald-400 cursor-wait' : 'text-[#666] hover:text-[#00ff41]'
+                  }`}
                   disabled={audioLoading}
                 >
                   {audioLoading ? <Loader2 size={16} className="animate-spin"/> : isPlaying ? <Pause size={16}/> : <Play size={16}/>}
