@@ -693,36 +693,40 @@ const MusicPlayer = () => {
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden bg-[#0a0a0a]">
-      <div className="h-12 border-b border-[#333] bg-[#111] flex items-center px-4 justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <Disc size={18} className="text-[#00ff41]" />
-          <span className="font-bold tracking-widest text-sm text-white">EVIDENCE_LOCKER // AUDIO_ARCHIVE</span>
+      {/* Header */}
+      <div className="h-10 md:h-12 border-b border-[#333] bg-[#111] flex items-center px-2 md:px-4 justify-between shrink-0">
+        <div className="flex items-center gap-1 md:gap-2">
+          <Disc size={14} className="md:w-[18px] md:h-[18px] text-[#00ff41]" />
+          <span className="font-bold tracking-widest text-[10px] md:text-sm text-white">
+            <span className="hidden sm:inline">EVIDENCE_LOCKER // </span>AUDIO_ARCHIVE
+          </span>
         </div>
-        <div className="text-[10px] font-mono text-gray-500">TOTAL_SIZE: 4.2GB</div>
+        <div className="text-[8px] md:text-[10px] font-mono text-gray-500 hidden sm:block">TOTAL_SIZE: 4.2GB</div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Video Modal */}
         {showVideoModal && (
-          <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-8 backdrop-blur-sm">
+          <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4 md:p-8 backdrop-blur-sm">
             <div className="w-full max-w-3xl border-2 border-[#00ff41] bg-black shadow-[0_0_50px_rgba(0,255,65,0.2)] flex flex-col">
-              <div className="h-8 bg-[#00ff41] flex items-center justify-between px-2">
-                <span className="text-black font-bold text-xs font-mono">MEDIA_PLAYER_V1.EXE</span>
-                <X size={16} className="text-black cursor-pointer hover:bg-white/20" onClick={() => setShowVideoModal(false)} />
+              <div className="h-7 md:h-8 bg-[#00ff41] flex items-center justify-between px-2">
+                <span className="text-black font-bold text-[10px] md:text-xs font-mono">MEDIA_PLAYER_V1.EXE</span>
+                <X size={14} className="md:w-4 md:h-4 text-black cursor-pointer hover:bg-white/20" onClick={() => setShowVideoModal(false)} />
               </div>
               <div className="aspect-video bg-[#111] relative overflow-hidden flex items-center justify-center">
                 <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
                 <div className="text-center">
-                  <div className="text-[#00ff41] text-4xl mb-4 animate-pulse"><Play size={64}/></div>
-                  <p className="text-gray-500 font-mono text-sm">BUFFERING VIDEO FEED...</p>
-                  <p className="text-gray-700 text-xs mt-2">SOURCE: {currentTrack?.title}</p>
+                  <div className="text-[#00ff41] text-3xl md:text-4xl mb-4 animate-pulse"><Play size={48} className="md:w-16 md:h-16"/></div>
+                  <p className="text-gray-500 font-mono text-xs md:text-sm">BUFFERING VIDEO FEED...</p>
+                  <p className="text-gray-700 text-[10px] md:text-xs mt-2">SOURCE: {currentTrack?.title}</p>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="w-1/4 min-w-[200px] border-r border-[#333] bg-[#050505] flex flex-col">
+        {/* Album List - Hidden on mobile, shown on tablet+ */}
+        <div className="hidden md:flex md:w-1/4 md:min-w-[200px] border-r border-[#333] bg-[#050505] flex-col">
           <div className="p-2 border-b border-[#333] bg-[#1a1a1a] text-[10px] text-gray-400 font-mono sticky top-0">DIRECTORY_TREE</div>
           <div className="overflow-y-auto flex-1 p-2 space-y-1">
             {albums.map(album => (
@@ -740,14 +744,28 @@ const MusicPlayer = () => {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col bg-black/80">
-          <div className="p-4 border-b border-[#333] bg-[#0a0a0a]">
-            <h2 className={`text-2xl md:text-4xl font-black chrome-text mb-2`}>{activeAlbum.title}</h2>
-            <p className="text-gray-400 font-mono text-xs">{activeAlbum.description}</p>
+        {/* Mobile Album Selector - Dropdown on mobile */}
+        <div className="md:hidden border-b border-[#333] bg-[#050505] p-2">
+          <select 
+            value={selectedAlbumId}
+            onChange={(e) => setSelectedAlbumId(e.target.value)}
+            className="w-full bg-[#111] border border-[#333] text-white p-2 text-sm font-mono focus:border-[#00ff41] focus:outline-none"
+          >
+            {albums.map(album => (
+              <option key={album.id} value={album.id}>{album.title}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex-1 flex flex-col bg-black/80 overflow-hidden">
+          <div className="p-3 md:p-4 border-b border-[#333] bg-[#0a0a0a]">
+            <h2 className={`text-xl md:text-4xl font-black chrome-text mb-1 md:mb-2`}>{activeAlbum.title}</h2>
+            <p className="text-gray-400 font-mono text-[10px] md:text-xs">{activeAlbum.description}</p>
           </div>
           
           <div className="flex-1 overflow-y-auto p-0">
-            <table className="w-full text-left border-collapse">
+            {/* Desktop: Table view */}
+            <table className="hidden md:table w-full text-left border-collapse">
               <thead className="bg-[#111] text-[10px] text-gray-500 font-mono sticky top-0">
                 <tr>
                   <th className="p-2 border-b border-[#333] w-10">#</th>
@@ -780,6 +798,42 @@ const MusicPlayer = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* Mobile: Card view */}
+            <div className="md:hidden">
+              {activeAlbum.tracks.map((track, i) => (
+                <div
+                  key={track.id}
+                  onClick={() => handleTrackClick(track)}
+                  className={`p-4 border-b border-[#333]/50 cursor-pointer transition-colors ${
+                    currentTrack?.id === track.id ? 'bg-[#00ff41]/20' : 'active:bg-[#111]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`text-sm font-mono ${currentTrack?.id === track.id ? 'text-[#00ff41]' : 'text-gray-600'}`}>
+                      {currentTrack?.id === track.id && isPlaying ? (
+                        <div className="animate-pulse text-[#00ff41] text-base">▶</div>
+                      ) : (
+                        (i + 1).toString().padStart(2, '0')
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-bold text-sm truncate ${currentTrack?.id === track.id ? 'text-[#00ff41]' : 'text-gray-300'}`}>
+                        {track.title}
+                      </div>
+                      <div className="text-[10px] font-mono text-gray-600 mt-0.5">{track.date}</div>
+                    </div>
+                    {track.video && (
+                      <Video 
+                        size={16} 
+                        className="text-gray-500 shrink-0"
+                        onClick={(e) => { e.stopPropagation(); setCurrentTrack(track); setShowVideoModal(true); }}
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -849,6 +903,8 @@ const MusicPlayer = () => {
         ref={audioRef} 
         onEnded={() => setIsPlaying(false)}
         onError={(e) => console.error("Audio playback error:", e)}
+        playsInline
+        preload="metadata"
       />
     </div>
   );
