@@ -616,11 +616,11 @@ const MusicPlayer = () => {
       color: "text-[#00ff41]", 
       tapeColor: "border-[#00ff41]",
       tracks: [
-        { id: 101, title: "Freestyle (Kanye Beat)", duration: "2:15", date: "2004-02-14", video: true, audioUrl: "albums/livewire-sessions/01-freestyle-kanye.mp3" },
-        { id: 102, title: "Feat. Ali Vegas (50 Cent Beat)", duration: "3:42", date: "2004-03-01", video: false, audioUrl: "albums/livewire-sessions/02-ali-vegas-50cent.mp3" },
-        { id: 103, title: "Sprung (Remix)", duration: "3:30", date: "2004-04-20", video: true, audioUrl: "albums/livewire-sessions/03-sprung-remix.mp3" },
-        { id: 104, title: "Push It (Remix)", duration: "3:15", date: "2004-05-10", video: false, audioUrl: "albums/livewire-sessions/04-push-it-remix.mp3" },
-        { id: 105, title: "Freestyle (Jim Jones Beat)", duration: "2:50", date: "2004-06-05", video: true, audioUrl: "albums/livewire-sessions/05-freestyle-jim-jones.mp3" }
+        { id: 101, title: "Freestyle (Kanye Beat)", duration: "2:15", date: "2004-02-14", video: true, audioUrl: "Whip Montez Kanye beat freestyle 4.mp3" },
+        { id: 102, title: "Feat. Ali Vegas (50 Cent Beat)", duration: "3:42", date: "2004-03-01", video: false, audioUrl: "Whip Montez 50 Freestyle Whip_Veg.mp3" },
+        { id: 103, title: "Sprung (Remix)", duration: "3:30", date: "2004-04-20", video: true, audioUrl: "Whip Montez SprungRemix_whip.mp3" },
+        { id: 104, title: "Push It (Remix)", duration: "3:15", date: "2004-05-10", video: false, audioUrl: "Whip Montez Push it.mp3" },
+        { id: 105, title: "Freestyle (Jim Jones Beat)", duration: "2:50", date: "2004-06-05", video: true, audioUrl: "Whip Montez Jim jones freestyle.mp3" }
       ]
     },
     {
