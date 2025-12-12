@@ -822,24 +822,45 @@ const MusicPlayer = () => {
           return;
         }
         
-        const attemptPlay = () => {
-          console.log('[AUDIO DEBUG] Attempting to play, readyState:', audioRef.current.readyState);
-          if (audioRef.current.readyState >= 3) { // HAVE_FUTURE_DATA or better
+        console.log('[AUDIO DEBUG] Setting up auto-play after load...');
+        
+        const doPlay = () => {
+          console.log('[AUDIO DEBUG] Playing now, readyState:', audioRef.current?.readyState);
+          if (audioRef.current) {
             audioRef.current.play()
               .then(() => console.log('[AUDIO DEBUG] Playback started successfully'))
               .catch(e => console.log('[AUDIO DEBUG] Playback failed:', e));
-          } else {
-            console.log('[AUDIO DEBUG] Waiting for canplaythrough event...');
-            audioRef.current.addEventListener('canplaythrough', () => {
-              console.log('[AUDIO DEBUG] canplaythrough fired, playing now');
-              audioRef.current.play()
-                .then(() => console.log('[AUDIO DEBUG] Playback started after canplaythrough'))
-                .catch(e => console.log('[AUDIO DEBUG] Playback failed after canplaythrough:', e));
-            }, { once: true });
           }
         };
         
-        attemptPlay();
+        // Wait a moment for the src to be set, then check readyState
+        setTimeout(() => {
+          if (!audioRef.current) return;
+          
+          console.log('[AUDIO DEBUG] Checking readyState:', audioRef.current.readyState);
+          
+          if (audioRef.current.readyState >= 3) {
+            // Already loaded enough to play
+            console.log('[AUDIO DEBUG] Audio already ready, playing immediately');
+            doPlay();
+          } else {
+            // Wait for loadeddata event (fires earlier than canplaythrough)
+            console.log('[AUDIO DEBUG] Adding loadeddata listener...');
+            const onLoadedData = () => {
+              console.log('[AUDIO DEBUG] loadeddata event fired');
+              doPlay();
+            };
+            audioRef.current.addEventListener('loadeddata', onLoadedData, { once: true });
+            
+            // Fallback timeout in case event doesn't fire
+            setTimeout(() => {
+              if (audioRef.current && isPlaying) {
+                console.log('[AUDIO DEBUG] Timeout fallback, forcing play attempt');
+                doPlay();
+              }
+            }, 1000);
+          }
+        }, 100);
       };
       
       try {
