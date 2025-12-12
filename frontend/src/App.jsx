@@ -5,7 +5,7 @@ import {
   Share2, Heart, MessageCircle, CreditCard, Lock, Truck, CheckCircle, MapPin, 
   Calendar, Ticket, Flame, Search, Database, Globe, Newspaper, ExternalLink, User, 
   Hash, Grid, Headphones, Activity, Zap, Wallet, Power, Sliders, Briefcase, 
-  RefreshCw, ToggleLeft, ToggleRight, Filter, Plus, Trash2, Edit2, 
+  RefreshCw, ToggleLeft, ToggleRight, Filter, Plus, Trash2, Edit2, Upload,
   Camera, TrendingUp, Users, Image as ImageIcon, Link as LinkIcon, Loader2
 } from 'lucide-react';
 
@@ -13,7 +13,7 @@ import {
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, arrayUnion, where, getDocs } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, getDownloadURL, uploadBytes } from 'firebase/storage';
 
 // --- FIREBASE SETUP ---
 let app = null;
@@ -564,6 +564,64 @@ const Home = ({ setSection }) => {
 
 // 4. BIO SECTION
 const Bio = ({ setSection }) => {
+  const [viewMode, setViewMode] = useState('bio'); // 'bio' or 'memory'
+  const [photos, setPhotos] = useState([]);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Load photos from Firebase on mount
+  useEffect(() => {
+    if (!db) return;
+    
+    const loadPhotos = async () => {
+      try {
+        const photosRef = collection(db, 'memoryLane');
+        const q = query(photosRef, orderBy('uploadedAt', 'desc'));
+        const snapshot = await getDocs(q);
+        const photoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPhotos(photoList);
+      } catch (err) {
+        console.log('Error loading photos:', err);
+      }
+    };
+    
+    loadPhotos();
+  }, []);
+
+  // Upload photo to Firebase (admin only)
+  const handleUpload = async () => {
+    if (!uploadFile || !storage || !db) return;
+    
+    setUploading(true);
+    try {
+      // Upload to Firebase Storage
+      const storageRef = ref(storage, `memory-lane/${Date.now()}_${uploadFile.name}`);
+      await uploadBytes(storageRef, uploadFile);
+      const url = await getDownloadURL(storageRef);
+      
+      // Save metadata to Firestore
+      await addDoc(collection(db, 'memoryLane'), {
+        url,
+        caption: '',
+        uploadedAt: new Date().toISOString()
+      });
+      
+      // Reload photos
+      const photosRef = collection(db, 'memoryLane');
+      const q = query(photosRef, orderBy('uploadedAt', 'desc'));
+      const snapshot = await getDocs(q);
+      const photoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPhotos(photoList);
+      
+      setUploadFile(null);
+      alert('Photo uploaded successfully!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed');
+    }
+    setUploading(false);
+  };
+
   return (
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-2 md:p-4">
       <BackgroundCarousel images={[]} />
@@ -617,17 +675,36 @@ const Bio = ({ setSection }) => {
         <div className="flex-1 bg-[#0a0a0a] flex flex-col relative overflow-hidden min-h-0">
            {/* Header */}
            <div className="h-10 md:h-16 bg-[#00ff41] text-black px-3 md:p-4 flex justify-between items-center shrink-0">
-             <h1 className="text-lg md:text-4xl font-black tracking-tighter">OFFICIAL PROFILE</h1>
-             <div className="flex gap-1 md:gap-2">
-                 <div className="w-2 h-2 md:w-3 md:h-3 bg-black"></div>
-                 <div className="w-2 h-2 md:w-3 md:h-3 bg-black"></div>
-                 <div className="w-2 h-2 md:w-3 md:h-3 bg-black"></div>
+             <h1 className="text-lg md:text-4xl font-black tracking-tighter">
+               {viewMode === 'bio' ? 'OFFICIAL PROFILE' : 'MEMORY LANE'}
+             </h1>
+             <div className="flex items-center gap-2">
+               {/* Toggle Buttons */}
+               <button
+                 onClick={() => setViewMode('bio')}
+                 className={`px-2 md:px-4 py-1 md:py-2 text-[10px] md:text-xs font-bold transition-all ${
+                   viewMode === 'bio' ? 'bg-black text-[#00ff41]' : 'bg-black/20 text-black hover:bg-black/40'
+                 }`}
+               >
+                 BIO
+               </button>
+               <button
+                 onClick={() => setViewMode('memory')}
+                 className={`px-2 md:px-4 py-1 md:py-2 text-[10px] md:text-xs font-bold transition-all ${
+                   viewMode === 'memory' ? 'bg-black text-[#00ff41]' : 'bg-black/20 text-black hover:bg-black/40'
+                 }`}
+               >
+                 <Camera size={12} className="inline mr-1" />
+                 MEMORY
+               </button>
              </div>
            </div>
 
            {/* Scrollable Content */}
            <div className="flex-1 overflow-y-auto p-3 md:p-8 overscroll-contain" style={{WebkitOverflowScrolling: 'touch'}}>
-             <div className="max-w-2xl mx-auto space-y-4 md:space-y-8">
+             {viewMode === 'bio' ? (
+               // BIO CONTENT
+               <div className="max-w-2xl mx-auto space-y-4 md:space-y-8">
                  
                  {/* Quote */}
                  <blockquote className="border-l-4 border-[#00ff41] pl-6 py-2">
@@ -735,8 +812,76 @@ const Bio = ({ setSection }) => {
                       {'>'} SYSTEM NOTE: Artist Profile Last Updated: DEC 12 2025
                    </p>
                  </div>
+               </div>
+             ) : (
+               // MEMORY LANE GALLERY
+               <div className="max-w-5xl mx-auto">
+                 <div className="mb-6 text-center">
+                   <h2 className="text-2xl md:text-3xl font-black text-[#00ff41] mb-2">MEMORY LANE</h2>
+                   <p className="text-gray-400 text-sm font-mono">Studio sessions, shows, and behind-the-scenes moments from the Livewire era</p>
+                 </div>
 
-             </div>
+                 {/* Admin Upload (only show if authenticated) */}
+                 {user && !user.isAnonymous && (
+                   <div className="bg-[#1a1a1a] border-2 border-[#333] p-4 mb-6">
+                     <h3 className="text-[#00ff41] font-bold mb-2 flex items-center gap-2">
+                       <Upload size={16} />
+                       ADMIN: Upload Photo
+                     </h3>
+                     <div className="flex gap-2">
+                       <input
+                         type="file"
+                         accept="image/*"
+                         onChange={(e) => setUploadFile(e.target.files[0])}
+                         className="flex-1 bg-[#0a0a0a] border border-[#333] text-gray-300 px-3 py-2 text-sm"
+                       />
+                       <button
+                         onClick={handleUpload}
+                         disabled={!uploadFile || uploading}
+                         className="bg-[#00ff41] text-black px-4 py-2 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#00cc33] transition-colors"
+                       >
+                         {uploading ? 'UPLOADING...' : 'UPLOAD'}
+                       </button>
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Photo Grid */}
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                   {photos.length > 0 ? (
+                     photos.map((photo) => (
+                       <div key={photo.id} className="aspect-square bg-[#1a1a1a] border-2 border-[#333] relative overflow-hidden group hover:border-[#00ff41] transition-all">
+                         <img 
+                           src={photo.url} 
+                           alt="Memory" 
+                           className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                         />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                           <div className="text-[#00ff41] text-[10px] font-mono">
+                             {photo.caption || 'RED HOOK ARCHIVES'}
+                           </div>
+                         </div>
+                       </div>
+                     ))
+                   ) : (
+                     // Placeholder grid
+                     [...Array(12)].map((_, i) => (
+                       <div key={i} className="aspect-square bg-[#1a1a1a] border-2 border-[#333] relative overflow-hidden group hover:border-[#00ff41] transition-all">
+                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
+                           <Camera size={32} className="mb-2 opacity-20" />
+                           <div className="text-[10px] font-mono">PHOTO {i + 1}</div>
+                           <div className="text-[8px] font-mono opacity-50">Coming Soon</div>
+                         </div>
+                       </div>
+                     ))
+                   )}
+                 </div>
+
+                 <p className="mt-6 text-xs text-gray-500 italic text-center border-t border-[#333] pt-4">
+                   Archive in progress. More photos being digitized from analog sources. Check back soon.
+                 </p>
+               </div>
+             )}
            </div>
         </div>
 
