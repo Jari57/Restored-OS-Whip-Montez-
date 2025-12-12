@@ -6,7 +6,7 @@ import {
   Calendar, Ticket, Flame, Search, Database, Globe, Newspaper, ExternalLink, User, 
   Hash, Grid, Headphones, Activity, Zap, Wallet, Power, Sliders, Briefcase, 
   RefreshCw, ToggleLeft, ToggleRight, Filter, Plus, Trash2, Edit2, 
-  Camera, TrendingUp, Users, Image as ImageIcon, Link as LinkIcon
+  Camera, TrendingUp, Users, Image as ImageIcon, Link as LinkIcon, Loader2
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -698,7 +698,9 @@ const MusicPlayer = () => {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
   const audioRef = useRef(null);
+  const urlCacheRef = useRef({}); // Cache Firebase Storage URLs
   
   const albums = [
     {
@@ -748,28 +750,61 @@ const MusicPlayer = () => {
     }
   ];
 
-  // Play/pause handler
+  // Optimized audio loading with caching and preload
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
     
-    // Direct audio loading - try storage first, fallback to direct path
     const loadAudio = async () => {
+      setAudioLoading(true);
+      
       try {
+        // Check cache first for instant loading
+        if (urlCacheRef.current[currentTrack.audioUrl]) {
+          audioRef.current.src = urlCacheRef.current[currentTrack.audioUrl];
+          audioRef.current.load(); // Force preload
+          setAudioLoading(false);
+          if (isPlaying) {
+            audioRef.current.play().catch(e => console.log('Playback failed:', e));
+          }
+          return;
+        }
+        
+        // Try Firebase Storage with caching
         if (storage && currentTrack.audioUrl) {
           const storageRef = ref(storage, currentTrack.audioUrl);
           const url = await getDownloadURL(storageRef);
+          
+          // Cache the URL for instant future access
+          urlCacheRef.current[currentTrack.audioUrl] = url;
+          
           audioRef.current.src = url;
+          audioRef.current.load(); // Force preload
+          setAudioLoading(false);
+          
+          if (isPlaying) {
+            audioRef.current.play().catch(e => console.log('Playback failed:', e));
+          }
         } else {
-          // Fallback: try direct path
-          audioRef.current.src = `/${currentTrack.audioUrl}`;
-        }
-        if (isPlaying) {
-          audioRef.current.play().catch(e => console.log('Playback failed:', e));
+          // Direct path fallback
+          const directUrl = `/${currentTrack.audioUrl}`;
+          urlCacheRef.current[currentTrack.audioUrl] = directUrl;
+          audioRef.current.src = directUrl;
+          audioRef.current.load();
+          setAudioLoading(false);
+          
+          if (isPlaying) {
+            audioRef.current.play().catch(e => console.log('Playback failed:', e));
+          }
         }
       } catch (err) {
         console.log("Trying direct audio path:", currentTrack.audioUrl);
-        // Direct fallback
-        audioRef.current.src = `/${currentTrack.audioUrl}`;
+        // Direct fallback with caching
+        const directUrl = `/${currentTrack.audioUrl}`;
+        urlCacheRef.current[currentTrack.audioUrl] = directUrl;
+        audioRef.current.src = directUrl;
+        audioRef.current.load();
+        setAudioLoading(false);
+        
         if (isPlaying) {
           audioRef.current.play().catch(e => console.log('Playback failed:', e));
         }
@@ -989,8 +1024,9 @@ const MusicPlayer = () => {
                 <button 
                   onClick={() => setIsPlaying(!isPlaying)}
                   className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"
+                  disabled={audioLoading}
                 >
-                  {isPlaying ? <Pause size={16}/> : <Play size={16}/>}
+                  {audioLoading ? <Loader2 size={16} className="animate-spin"/> : isPlaying ? <Pause size={16}/> : <Play size={16}/>}
                 </button>
                 <button className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"><div className="w-3 h-3 bg-current rounded-sm"></div></button>
                 <button className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"><div className="flex"><Play size={10}/><Play size={10}/></div></button>
@@ -1024,7 +1060,8 @@ const MusicPlayer = () => {
         onEnded={() => setIsPlaying(false)}
         onError={(e) => console.error("Audio playback error:", e)}
         playsInline
-        preload="metadata"
+        preload="auto"
+        crossOrigin="anonymous"
       />
     </div>
   );
