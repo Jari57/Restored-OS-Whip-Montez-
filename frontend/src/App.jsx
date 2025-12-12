@@ -1199,19 +1199,20 @@ const StyleArchive = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#050505] text-gray-300 relative font-sans">
+    <div className="h-full flex flex-col bg-[#050505] text-gray-300 relative font-sans overflow-hidden">
       
       {/* HEADER */}
-      <div className="h-20 border-b border-[#333] flex items-center justify-between px-6 bg-[#111] z-20">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-black uppercase tracking-tighter text-white flex items-center gap-2">
-             <ShoppingBag size={24} className="text-[#00ff41]"/>
-             STORE_FRONT
+      <div className="h-14 md:h-20 border-b border-[#333] flex items-center justify-between px-3 md:px-6 bg-[#111] z-20 shrink-0">
+        <div className="flex flex-col gap-0.5 md:gap-1">
+          <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter text-white flex items-center gap-1 md:gap-2">
+             <ShoppingBag size={18} className="md:w-6 md:h-6 text-[#00ff41]"/>
+             <span className="hidden sm:inline">STORE_FRONT</span>
+             <span className="sm:hidden">STORE</span>
           </h2>
-          <div className="text-[10px] text-[#00ff41] font-mono tracking-widest uppercase">LIVEWIRE x WHIP MONTEZ OFFICIAL MERCH</div>
+          <div className="text-[8px] md:text-[10px] text-[#00ff41] font-mono tracking-wider md:tracking-widest uppercase">LIVEWIRE x WHIP MONTEZ</div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <div className="hidden md:flex items-center gap-2 bg-[#222] px-3 py-1 rounded-full border border-[#333]">
             <Search size={14} />
             <input 
@@ -1229,10 +1230,10 @@ const StyleArchive = () => {
       </div>
 
       {/* MAIN */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         
         {/* SIDEBAR */}
-        <div className="w-64 bg-[#0a0a0a] border-r border-[#333] p-6 hidden md:flex flex-col gap-8 overflow-y-auto">
+        <div className="w-56 lg:w-64 bg-[#0a0a0a] border-r border-[#333] p-4 lg:p-6 hidden md:flex flex-col gap-6 lg:gap-8 overflow-y-auto">
           <div>
             <h3 className="text-xs font-bold text-[#00ff41] mb-4 uppercase tracking-widest flex items-center gap-2"><Filter size={12}/> Categories</h3>
             <div className="space-y-2">
@@ -1282,23 +1283,50 @@ const StyleArchive = () => {
         </div>
 
         {/* GRID */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#0e0e0e]">
+        <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-[#0e0e0e]" style={{WebkitOverflowScrolling: 'touch'}}>
+          
+          {/* Mobile Filters */}
+          <div className="md:hidden mb-4 flex gap-2 overflow-x-auto pb-2" style={{WebkitOverflowScrolling: 'touch'}}>
+            {['All', 'Shirts', 'Pants', 'Hoodies', 'Bags', 'Accessories', 'Jackets'].map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => setFilters({...filters, category: cat})}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border transition-colors ${
+                  filters.category === cat 
+                    ? 'bg-[#00ff41] text-black border-[#00ff41]' 
+                    : 'border-[#333] text-gray-500 active:bg-[#222]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
           
           {isAdmin && (
             <div 
               onClick={() => setEditingItem({})}
-              className="mb-6 p-4 border-2 border-dashed border-[#333] flex items-center justify-center gap-2 cursor-pointer hover:border-[#00ff41] hover:text-[#00ff41] transition-all text-gray-500"
+              className="mb-4 md:mb-6 p-3 md:p-4 border-2 border-dashed border-[#333] flex items-center justify-center gap-2 cursor-pointer hover:border-[#00ff41] hover:text-[#00ff41] transition-all text-gray-500"
             >
-              <Plus size={20}/> <span className="font-bold text-sm uppercase">Add New Product</span>
+              <Plus size={18} className="md:w-5 md:h-5"/> <span className="font-bold text-xs md:text-sm uppercase">Add New Product</span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
             {filteredItems.map(item => (
               <div key={item.id} className="group relative bg-[#111] border border-[#222] hover:border-[#00ff41]/50 transition-all duration-300 flex flex-col">
                 <div className="aspect-[3/4] overflow-hidden relative bg-[#050505]">
                   <img src={item.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"/>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black to-transparent">
+                  {/* Mobile: Always visible button */}
+                  <div className="md:hidden absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black to-transparent">
+                    <button 
+                      onClick={() => { setCart([...cart, item]); setIsCartOpen(true); }}
+                      className="w-full bg-[#00ff41] text-black font-bold text-[10px] py-2 uppercase tracking-wider hover:bg-white transition-colors shadow-lg"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {/* Desktop: Hover to show */}
+                  <div className="hidden md:block absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black to-transparent">
                     <button 
                       onClick={() => { setCart([...cart, item]); setIsCartOpen(true); }}
                       className="w-full bg-[#00ff41] text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-white transition-colors shadow-lg"
@@ -1313,13 +1341,13 @@ const StyleArchive = () => {
                     </div>
                   )}
                 </div>
-                <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="p-2 md:p-4 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="text-[10px] text-[#00ff41] font-mono uppercase mb-1">{item.category}</div>
-                    <h3 className="text-white font-bold text-sm uppercase leading-tight mb-1">{item.name}</h3>
-                    <p className="text-gray-500 text-xs">{item.desc}</p>
+                    <div className="text-[9px] md:text-[10px] text-[#00ff41] font-mono uppercase mb-0.5 md:mb-1">{item.category}</div>
+                    <h3 className="text-white font-bold text-xs md:text-sm uppercase leading-tight mb-0.5 md:mb-1">{item.name}</h3>
+                    <p className="text-gray-500 text-[10px] md:text-xs hidden sm:block">{item.desc}</p>
                   </div>
-                  <div className="mt-4 font-mono text-white text-lg">${item.price}</div>
+                  <div className="mt-2 md:mt-4 font-mono text-white text-base md:text-lg">${item.price}</div>
                 </div>
               </div>
             ))}
@@ -1329,31 +1357,31 @@ const StyleArchive = () => {
 
       {/* CART */}
       {isCartOpen && (
-        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-md bg-[#111] border-l border-[#333] shadow-2xl flex flex-col h-full animate-slide-in-right">
-            <div className="h-16 border-b border-[#333] flex items-center justify-between px-6">
-              <h2 className="text-xl font-black uppercase tracking-tighter text-white">YOUR CART ({cart.length})</h2>
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end" onClick={(e) => e.target === e.currentTarget && setIsCartOpen(false)}>
+          <div className="w-full sm:max-w-md bg-[#111] border-l border-[#333] shadow-2xl flex flex-col h-full animate-slide-in-right">
+            <div className="h-12 md:h-16 border-b border-[#333] flex items-center justify-between px-3 md:px-6 shrink-0">
+              <h2 className="text-base md:text-xl font-black uppercase tracking-tighter text-white">CART ({cart.length})</h2>
               <button onClick={() => setIsCartOpen(false)}><X size={20} className="text-gray-400 hover:text-white"/></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4" style={{WebkitOverflowScrolling: 'touch'}}>
               {cart.map((item, i) => (
-                <div key={i} className="flex gap-4 border border-[#333] p-2 bg-[#0a0a0a]">
-                  <img src={item.image} className="w-16 h-16 object-cover bg-[#222]"/>
-                  <div className="flex-1">
-                    <div className="text-white font-bold text-sm uppercase">{item.name}</div>
-                    <div className="text-[#00ff41] font-mono text-xs">${item.price}</div>
+                <div key={i} className="flex gap-2 md:gap-4 border border-[#333] p-2 bg-[#0a0a0a]">
+                  <img src={item.image} className="w-12 h-12 md:w-16 md:h-16 object-cover bg-[#222] shrink-0"/>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-bold text-xs md:text-sm uppercase truncate">{item.name}</div>
+                    <div className="text-[#00ff41] font-mono text-[10px] md:text-xs">${item.price}</div>
                   </div>
-                  <button onClick={() => setCart(cart.filter((_, idx) => idx !== i))} className="text-gray-500 hover:text-red-500"><X size={14}/></button>
+                  <button onClick={() => setCart(cart.filter((_, idx) => idx !== i))} className="text-gray-500 hover:text-red-500 shrink-0"><X size={14}/></button>
                 </div>
               ))}
-              {cart.length === 0 && <div className="text-center text-gray-600 mt-10">Cart is empty.</div>}
+              {cart.length === 0 && <div className="text-center text-gray-600 mt-10 text-sm">Cart is empty.</div>}
             </div>
-            <div className="p-6 border-t border-[#333]">
-              <div className="flex justify-between items-end mb-4">
-                <span className="text-gray-500 text-xs">SUBTOTAL</span>
-                <span className="text-white font-bold text-xl">${cart.reduce((a, b) => a + b.price, 0)}</span>
+            <div className="p-3 md:p-6 border-t border-[#333] shrink-0">
+              <div className="flex justify-between items-end mb-3 md:mb-4">
+                <span className="text-gray-500 text-[10px] md:text-xs">SUBTOTAL</span>
+                <span className="text-white font-bold text-lg md:text-xl">${cart.reduce((a, b) => a + b.price, 0)}</span>
               </div>
-              <button className="w-full bg-[#00ff41] text-black py-3 font-bold uppercase tracking-widest text-xs hover:bg-white transition-colors">CHECKOUT</button>
+              <button className="w-full bg-[#00ff41] text-black py-2.5 md:py-3 font-bold uppercase tracking-wider md:tracking-widest text-[10px] md:text-xs hover:bg-white transition-colors">CHECKOUT</button>
             </div>
           </div>
         </div>
