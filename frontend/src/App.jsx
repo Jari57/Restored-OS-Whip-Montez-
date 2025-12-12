@@ -1204,15 +1204,6 @@ const TourHistory = () => {
 
 // 6. STYLE ARCHIVE (Merch Store)
 const StyleArchive = () => {
-  const [items, setItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [filters, setFilters] = useState({ category: 'All', sort: 'newest', search: '' });
-  const [showSeed, setShowSeed] = useState(false);
-
   // Fallback Data if Firebase Unavailable
   const fallbackItems = [
       { id: 'm1', name: "Livewire Official Tee - Black", category: "Shirts", price: 35, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80", desc: "Classic Logo Black" },
@@ -1232,6 +1223,15 @@ const StyleArchive = () => {
       { id: 'm15', name: "Digital Camo Hoodie", category: "Hoodies", price: 90, image: "https://images.unsplash.com/photo-1543163534-118e3810145f?w=500&q=80", desc: "Digital Print" },
       { id: 'm16', name: "Signature Wristband Set", category: "Accessories", price: 25, image: "https://images.unsplash.com/photo-1529124430154-15c0e051c04d?w=500&q=80", desc: "Livewire x Montez" }
   ];
+
+  const [items, setItems] = useState(fallbackItems);
+  const [filteredItems, setFilteredItems] = useState(fallbackItems);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [filters, setFilters] = useState({ category: 'All', sort: 'newest', search: '' });
+  const [showSeed, setShowSeed] = useState(false);
 
   // Firestore Sync with Fallback
   useEffect(() => {
