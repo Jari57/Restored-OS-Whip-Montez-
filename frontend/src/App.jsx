@@ -815,6 +815,33 @@ const MusicPlayer = () => {
     const loadAudio = async () => {
       setAudioLoading(true);
       
+      // Helper to wait for audio to be ready and then play
+      const playWhenReady = () => {
+        if (!isPlaying) {
+          console.log('[AUDIO DEBUG] Not auto-playing (isPlaying is false)');
+          return;
+        }
+        
+        const attemptPlay = () => {
+          console.log('[AUDIO DEBUG] Attempting to play, readyState:', audioRef.current.readyState);
+          if (audioRef.current.readyState >= 3) { // HAVE_FUTURE_DATA or better
+            audioRef.current.play()
+              .then(() => console.log('[AUDIO DEBUG] Playback started successfully'))
+              .catch(e => console.log('[AUDIO DEBUG] Playback failed:', e));
+          } else {
+            console.log('[AUDIO DEBUG] Waiting for canplaythrough event...');
+            audioRef.current.addEventListener('canplaythrough', () => {
+              console.log('[AUDIO DEBUG] canplaythrough fired, playing now');
+              audioRef.current.play()
+                .then(() => console.log('[AUDIO DEBUG] Playback started after canplaythrough'))
+                .catch(e => console.log('[AUDIO DEBUG] Playback failed after canplaythrough:', e));
+            }, { once: true });
+          }
+        };
+        
+        attemptPlay();
+      };
+      
       try {
         // Check cache first for instant loading
         if (urlCacheRef.current[currentTrack.audioUrl]) {
@@ -822,18 +849,7 @@ const MusicPlayer = () => {
           audioRef.current.src = urlCacheRef.current[currentTrack.audioUrl];
           audioRef.current.load();
           setAudioLoading(false);
-          
-          if (isPlaying) {
-            console.log('[AUDIO DEBUG] Playing from cache');
-            const playPromise = audioRef.current.play();
-            if (playPromise) {
-              playPromise.then(() => {
-                console.log('[AUDIO DEBUG] Cache playback started successfully');
-              }).catch(e => {
-                console.log('[AUDIO DEBUG] Cache playback failed:', e);
-              });
-            }
-          }
+          playWhenReady();
           return;
         }
         
@@ -849,18 +865,7 @@ const MusicPlayer = () => {
           audioRef.current.src = url;
           audioRef.current.load();
           setAudioLoading(false);
-
-          if (isPlaying) {
-            console.log('[AUDIO DEBUG] Playing from Firebase');
-            const playPromise = audioRef.current.play();
-            if (playPromise) {
-              playPromise.then(() => {
-                console.log('[AUDIO DEBUG] Firebase playback started successfully');
-              }).catch(e => {
-                console.log('[AUDIO DEBUG] Firebase playback failed:', e);
-              });
-            }
-          }
+          playWhenReady();
         } else {
           // Direct path fallback
           console.log('[AUDIO DEBUG] Using direct path:', currentTrack.audioUrl);
@@ -869,18 +874,7 @@ const MusicPlayer = () => {
           audioRef.current.src = directUrl;
           audioRef.current.load();
           setAudioLoading(false);
-
-          if (isPlaying) {
-            console.log('[AUDIO DEBUG] Playing from direct path');
-            const playPromise = audioRef.current.play();
-            if (playPromise) {
-              playPromise.then(() => {
-                console.log('[AUDIO DEBUG] Direct path playback started successfully');
-              }).catch(e => {
-                console.log('[AUDIO DEBUG] Direct path playback failed:', e);
-              });
-            }
-          }
+          playWhenReady();
         }
       } catch (err) {
         console.log('[AUDIO DEBUG] Error loading, using direct fallback:', err);
@@ -889,18 +883,7 @@ const MusicPlayer = () => {
         audioRef.current.src = directUrl;
         audioRef.current.load();
         setAudioLoading(false);
-
-        if (isPlaying) {
-          console.log('[AUDIO DEBUG] Playing from error fallback');
-          const playPromise = audioRef.current.play();
-          if (playPromise) {
-            playPromise.then(() => {
-              console.log('[AUDIO DEBUG] Fallback playback started successfully');
-            }).catch(e => {
-              console.log('[AUDIO DEBUG] Fallback playback failed:', e);
-            });
-          }
-        }
+        playWhenReady();
       }
     };
     
