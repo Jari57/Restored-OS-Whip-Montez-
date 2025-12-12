@@ -1190,7 +1190,6 @@ const MusicPlayer = () => {
         onError={(e) => console.error("Audio playback error:", e)}
         playsInline
         preload="auto"
-        crossOrigin="anonymous"
       />
     </div>
   );
