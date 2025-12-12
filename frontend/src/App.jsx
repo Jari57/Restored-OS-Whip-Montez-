@@ -13,11 +13,13 @@ import {
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 // --- FIREBASE SETUP ---
 let app = null;
 let auth = null;
 let db = null;
+let storage = null;
 
 try {
   if (typeof __firebase_config !== 'undefined' && __firebase_config) {
@@ -26,6 +28,7 @@ try {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
+      storage = getStorage(app);
     }
   }
 } catch (e) {
@@ -602,6 +605,7 @@ const MusicPlayer = () => {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
   
   const albums = [
     {
@@ -612,11 +616,11 @@ const MusicPlayer = () => {
       color: "text-[#00ff41]", 
       tapeColor: "border-[#00ff41]",
       tracks: [
-        { id: 101, title: "Freestyle (Kanye Beat)", duration: "2:15", date: "2004-02-14", video: true },
-        { id: 102, title: "Feat. Ali Vegas (50 Cent Beat)", duration: "3:42", date: "2004-03-01", video: false },
-        { id: 103, title: "Sprung (Remix)", duration: "3:30", date: "2004-04-20", video: true },
-        { id: 104, title: "Push It (Remix)", duration: "3:15", date: "2004-05-10", video: false },
-        { id: 105, title: "Freestyle (Jim Jones Beat)", duration: "2:50", date: "2004-06-05", video: true }
+        { id: 101, title: "Freestyle (Kanye Beat)", duration: "2:15", date: "2004-02-14", video: true, audioUrl: "albums/livewire-sessions/01-freestyle-kanye.mp3" },
+        { id: 102, title: "Feat. Ali Vegas (50 Cent Beat)", duration: "3:42", date: "2004-03-01", video: false, audioUrl: "albums/livewire-sessions/02-ali-vegas-50cent.mp3" },
+        { id: 103, title: "Sprung (Remix)", duration: "3:30", date: "2004-04-20", video: true, audioUrl: "albums/livewire-sessions/03-sprung-remix.mp3" },
+        { id: 104, title: "Push It (Remix)", duration: "3:15", date: "2004-05-10", video: false, audioUrl: "albums/livewire-sessions/04-push-it-remix.mp3" },
+        { id: 105, title: "Freestyle (Jim Jones Beat)", duration: "2:50", date: "2004-06-05", video: true, audioUrl: "albums/livewire-sessions/05-freestyle-jim-jones.mp3" }
       ]
     },
     {
@@ -627,14 +631,48 @@ const MusicPlayer = () => {
       color: "text-red-500",
       tapeColor: "border-red-500",
       tracks: [
-        { id: 201, title: "Projects Window", duration: "2:50", date: "2002-09-11", video: true },
-        { id: 202, title: "Subway Surfing", duration: "3:15", date: "2002-12-01", video: false },
-        { id: 203, title: "Loose Cigarettes", duration: "2:10", date: "2003-02-14", video: false },
-        { id: 204, title: "Summer Heat (Interlude)", duration: "1:20", date: "2003-07-04", video: false },
-        { id: 205, title: "Lights Out", duration: "4:00", date: "2003-08-14", video: true }
+        { id: 201, title: "Projects Window", duration: "2:50", date: "2002-09-11", video: true, audioUrl: "albums/red-hook-diaries/01-projects-window.mp3" },
+        { id: 202, title: "Subway Surfing", duration: "3:15", date: "2002-12-01", video: false, audioUrl: "albums/red-hook-diaries/02-subway-surfing.mp3" },
+        { id: 203, title: "Loose Cigarettes", duration: "2:10", date: "2003-02-14", video: false, audioUrl: "albums/red-hook-diaries/03-loose-cigarettes.mp3" },
+        { id: 204, title: "Summer Heat (Interlude)", duration: "1:20", date: "2003-07-04", video: false, audioUrl: "albums/red-hook-diaries/04-summer-heat.mp3" },
+        { id: 205, title: "Lights Out", duration: "4:00", date: "2003-08-14", video: true, audioUrl: "albums/red-hook-diaries/05-lights-out.mp3" }
       ]
     }
   ];
+
+  // Play/pause handler
+  useEffect(() => {
+    if (!audioRef.current || !currentTrack) return;
+    
+    if (storage && currentTrack.audioUrl) {
+      // Get download URL from Firebase Storage
+      const storageRef = ref(storage, currentTrack.audioUrl);
+      getDownloadURL(storageRef)
+        .then(url => {
+          audioRef.current.src = url;
+          if (isPlaying) audioRef.current.play();
+        })
+        .catch(err => {
+          console.error("Audio not found in Firebase Storage:", err);
+          // Fallback: play silence or show error
+        });
+    }
+  }, [currentTrack]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) audioRef.current.play();
+    else audioRef.current.pause();
+  }, [isPlaying]);
+
+  const handleTrackClick = (track) => {
+    if (currentTrack?.id === track.id) {
+      setIsPlaying(!isPlaying);
+    } else {
+      setCurrentTrack(track);
+      setIsPlaying(true);
+    }
+  };
 
   const activeAlbum = albums.find(a => a.id === selectedAlbumId) || albums[0];
 
@@ -724,10 +762,10 @@ const MusicPlayer = () => {
                     key={track.id}
                     className={`group cursor-pointer text-xs md:text-sm font-mono transition-colors ${currentTrack?.id === track.id ? 'bg-[#00ff41]/20 text-[#00ff41]' : 'hover:bg-[#111] text-gray-300'}`}
                   >
-                    <td className="p-3 border-b border-[#333]/50 text-gray-600 group-hover:text-white" onClick={() => { setCurrentTrack(track); setIsPlaying(true); }}>
+                    <td className="p-3 border-b border-[#333]/50 text-gray-600 group-hover:text-white" onClick={() => handleTrackClick(track)}>
                       {currentTrack?.id === track.id && isPlaying ? <div className="animate-pulse text-[#00ff41]">▶</div> : (i + 1).toString().padStart(2, '0')}
                     </td>
-                    <td className="p-3 border-b border-[#333]/50 font-bold" onClick={() => { setCurrentTrack(track); setIsPlaying(true); }}>{track.title}</td>
+                    <td className="p-3 border-b border-[#333]/50 font-bold" onClick={() => handleTrackClick(track)}>{track.title}</td>
                     <td className="p-3 border-b border-[#333]/50 text-gray-600 font-mono text-[10px]">{track.date}</td>
                     <td className="p-3 border-b border-[#333]/50 text-right">
                       {track.video && (
@@ -805,6 +843,13 @@ const MusicPlayer = () => {
           </div>
         </div>
       </div>
+      
+      {/* Hidden audio element for playback */}
+      <audio 
+        ref={audioRef} 
+        onEnded={() => setIsPlaying(false)}
+        onError={(e) => console.error("Audio playback error:", e)}
+      />
     </div>
   );
 };
