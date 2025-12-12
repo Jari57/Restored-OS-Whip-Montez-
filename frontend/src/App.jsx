@@ -188,16 +188,16 @@ const useFreeLimit = (agentKey, limit = 3) => {
 
 // 0. REIMAGINED LIVEWIRE LOGO (VECTOR STYLE)
 const LivewireLogo = () => (
-  <div className="flex flex-col items-end group cursor-pointer select-none pl-8">
+  <div className="flex flex-col items-end group cursor-pointer select-none pl-4 md:pl-8">
     <div className="relative">
-      <div className="absolute -inset-10 bg-green-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="absolute -inset-6 md:-inset-10 bg-green-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       <div className="relative z-10">
-        <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter text-white transform -skew-x-12 leading-[0.85] group-hover:text-green-50 transition-colors" 
-            style={{ textShadow: '3px 3px 0px #000, 0 0 20px rgba(0,255,65,0.3)' }}>
+        <h1 className="text-3xl sm:text-4xl md:text-6xl font-black italic tracking-tighter text-white transform -skew-x-12 leading-[0.85] group-hover:text-green-50 transition-colors" 
+            style={{ textShadow: '2px 2px 0px #000, 0 0 15px rgba(0,255,65,0.3)' }}>
           LIVEWIRE
         </h1>
       </div>
-      <span className="text-[10px] font-mono font-bold tracking-[0.35em] text-gray-500 uppercase mt-4 mr-1 group-hover:text-[#00ff41] transition-colors block text-right z-20">
+      <span className="text-[8px] md:text-[10px] font-mono font-bold tracking-[0.25em] md:tracking-[0.35em] text-gray-500 uppercase mt-2 md:mt-4 mr-1 group-hover:text-[#00ff41] transition-colors block text-right z-20">
         ENTERTAINMENT NYC
       </span>
     </div>
@@ -397,24 +397,24 @@ const Home = ({ setSection }) => {
   ];
 
   return (
-    <div className="relative h-full w-full overflow-hidden flex flex-col font-sans">
+    <div className="relative h-full w-full overflow-y-auto overflow-x-hidden flex flex-col font-sans" style={{WebkitOverflowScrolling: 'touch'}}>
       <BackgroundCarousel images={homeCarouselImages} />
       
-      <div className="relative z-30 flex-1 flex flex-col justify-between p-6 md:p-12 bg-gradient-to-t from-black via-transparent to-black/40">
+      <div className="relative z-30 flex-1 flex flex-col justify-between p-3 md:p-12 bg-gradient-to-t from-black via-transparent to-black/40 min-h-full">
         
         {/* Top Section: Branding */}
-        <div className="flex justify-between items-start w-full">
+        <div className="flex justify-between items-start w-full mb-4 md:mb-0">
           <div className="animate-fade-in">
-            <h1 className="chrome-text text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none opacity-90 drop-shadow-2xl">
+            <h1 className="chrome-text text-4xl sm:text-6xl md:text-9xl font-black uppercase tracking-tighter leading-none opacity-90 drop-shadow-2xl">
               Whip<br/>Montez
             </h1>
-            <div className="flex items-center gap-2 mt-4">
-              <div className="h-[2px] w-12 bg-[#00ff41]"></div>
-              <p className="text-[#00ff41] text-xs tracking-[0.3em] font-mono bg-black/50 px-2">RESTORED_SESSION_2004</p>
+            <div className="flex items-center gap-2 mt-2 md:mt-4">
+              <div className="h-[2px] w-8 md:w-12 bg-[#00ff41]"></div>
+              <p className="text-[#00ff41] text-[9px] md:text-xs tracking-[0.2em] md:tracking-[0.3em] font-mono bg-black/50 px-2">RESTORED_SESSION_2004</p>
             </div>
           </div>
           
-          <div className="flex flex-col items-end gap-4">
+          <div className="flex flex-col items-end gap-2 md:gap-4">
             <LivewireLogo />
 
             <div className="hidden md:block text-right">
@@ -424,9 +424,9 @@ const Home = ({ setSection }) => {
           </div>
         </div>
 
-        <div className="flex-1"></div>
+        <div className="flex-1 min-h-[20px]"></div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 w-full pb-4">
           {widgets.map((widget, i) => (
             <div 
               key={widget.id}
@@ -434,23 +434,23 @@ const Home = ({ setSection }) => {
               onMouseEnter={() => setHoveredItem(widget.title)}
               onMouseLeave={() => setHoveredItem(null)}
               className={`
-                group relative h-32 border-t-2 bg-black/80 backdrop-blur-md p-4 cursor-pointer transition-all duration-300
-                flex flex-col justify-between overflow-hidden
+                group relative h-28 md:h-32 border-t-2 bg-black/80 backdrop-blur-md p-3 md:p-4 cursor-pointer transition-all duration-300
+                flex flex-col justify-between overflow-hidden active:scale-95
                 ${widget.borderColor} ${widget.hoverBg} ${widget.shadow} hover:-translate-y-2
               `}
             >
               <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.2)_50%)] bg-[length:100%_4px] pointer-events-none opacity-50"></div>
               
               <div className="flex justify-between items-start relative z-10">
-                 <widget.icon size={24} className={`${widget.color} transition-transform group-hover:scale-110 duration-300`} />
-                 <span className="text-[10px] font-mono text-gray-500 group-hover:text-white transition-colors">{String(i + 1).padStart(2, '0')}</span>
+                 <widget.icon size={20} className={`md:w-6 md:h-6 ${widget.color} transition-transform group-hover:scale-110 duration-300`} />
+                 <span className="text-[9px] md:text-[10px] font-mono text-gray-500 group-hover:text-white transition-colors">{String(i + 1).padStart(2, '0')}</span>
               </div>
 
               <div className="relative z-10">
-                 <h3 className={`text-xl font-black uppercase tracking-tight text-white leading-none mb-1 group-hover:tracking-widest transition-all duration-300`}>
+                 <h3 className={`text-base md:text-xl font-black uppercase tracking-tight text-white leading-none mb-1 group-hover:tracking-widest transition-all duration-300`}>
                    {widget.title}
                  </h3>
-                 <div className={`text-[9px] font-mono uppercase tracking-wider ${widget.color} truncate`}>
+                 <div className={`text-[8px] md:text-[9px] font-mono uppercase tracking-wider ${widget.color} truncate`}>
                    {widget.id === 'news' ? (
                      <span className="animate-pulse">{'>'} {widget.content}</span>
                    ) : (
@@ -459,7 +459,7 @@ const Home = ({ setSection }) => {
                  </div>
               </div>
 
-              <div className={`absolute -bottom-10 -right-10 w-24 h-24 ${widget.color.replace('text-', 'bg-')}/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+              <div className={`absolute -bottom-10 -right-10 w-20 h-20 md:w-24 md:h-24 ${widget.color.replace('text-', 'bg-')}/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
             </div>
           ))}
         </div>
