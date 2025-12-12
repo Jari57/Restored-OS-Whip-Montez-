@@ -1969,7 +1969,7 @@ const ARSuite = () => {
 
     setLoading(true);
     setFeedback(null); // Clear previous feedback
-    const systemPrompt = "You are an A&R. Critique these lyrics. JSON format: { 'critique': '', 'commercial': 0-10, 'street': 0-10 }.";
+    const systemPrompt = "You are an A&R. Critique these lyrics. JSON format: { \"critique\": \"\", \"commercial\": 0-10, \"street\": 0-10 }.";
     
     const responseText = await callGemini(demoText, systemPrompt);
     
