@@ -1900,7 +1900,7 @@ const CrateDigger = () => {
 
     setLoading(true);
     setSamples([]);
-    const systemPrompt = "You are a crate digger. Suggest 3 obscure 70s/80s records based on the user's mood. JSON format: [{ 'artist': '', 'track': '', 'year': '', 'desc': '' }]. No markdown.";
+    const systemPrompt = "You are a crate digger. Suggest 3 obscure 70s/80s records based on the user's mood. JSON format: [{ \"artist\": \"\", \"track\": \"\", \"year\": \"\", \"desc\": \"\" }]. No markdown.";
     const responseText = await callGemini(mood, systemPrompt);
     try {
       const cleanText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
