@@ -637,6 +637,21 @@ const MusicPlayer = () => {
         { id: 204, title: "YoungStar", duration: "1:20", date: "2003-07-04", video: false, audioUrl: "Whip Montez YoungStar.mp3" },
         { id: 205, title: "No Matter You Say", duration: "4:00", date: "2003-08-14", video: true, audioUrl: "No Matter You Say.mp3" }
       ]
+    },
+    {
+      id: 'tape3',
+      title: "THE STOOP",
+      date: "JUL 15 2001",
+      description: "Chillin on the Blizzy",
+      color: "text-cyan-400",
+      tapeColor: "border-cyan-400",
+      tracks: [
+        { id: 301, title: "U Catching Feelings", duration: "3:20", date: "2001-07-15", video: false, audioUrl: "U Catching Feelings.mp3" },
+        { id: 302, title: "Only You", duration: "3:45", date: "2001-07-20", video: false, audioUrl: "Only You.mp3" },
+        { id: 303, title: "Dear GOD", duration: "4:10", date: "2001-08-01", video: true, audioUrl: "Whip Montez Dear GOD.mp3" },
+        { id: 304, title: "I Use to Love feat. Kia", duration: "3:55", date: "2001-08-10", video: false, audioUrl: "Whip Montez Feat. Kia I use to love.mp3" },
+        { id: 305, title: "It Gets Hard", duration: "3:30", date: "2001-08-15", video: false, audioUrl: "08 It gets hard.mp3" }
+      ]
     }
   ];
 
