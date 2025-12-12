@@ -631,11 +631,11 @@ const MusicPlayer = () => {
       color: "text-red-500",
       tapeColor: "border-red-500",
       tracks: [
-        { id: 201, title: "Projects Window", duration: "2:50", date: "2002-09-11", video: true, audioUrl: "albums/red-hook-diaries/01-projects-window.mp3" },
-        { id: 202, title: "Subway Surfing", duration: "3:15", date: "2002-12-01", video: false, audioUrl: "albums/red-hook-diaries/02-subway-surfing.mp3" },
-        { id: 203, title: "Loose Cigarettes", duration: "2:10", date: "2003-02-14", video: false, audioUrl: "albums/red-hook-diaries/03-loose-cigarettes.mp3" },
-        { id: 204, title: "Summer Heat (Interlude)", duration: "1:20", date: "2003-07-04", video: false, audioUrl: "albums/red-hook-diaries/04-summer-heat.mp3" },
-        { id: 205, title: "Lights Out", duration: "4:00", date: "2003-08-14", video: true, audioUrl: "albums/red-hook-diaries/05-lights-out.mp3" }
+        { id: 201, title: "U Catching Feelings", duration: "2:50", date: "2002-09-11", video: true, audioUrl: "U Catching Feelings.mp3" },
+        { id: 202, title: "Brooklyn Anthem feat. Alfonzo Hunter", duration: "3:15", date: "2002-12-01", video: false, audioUrl: "Brooklyn Anthem feat. Alfonzo Hunter.mp3" },
+        { id: 203, title: "Sit Back n Remain (Freestyle)", duration: "2:10", date: "2003-02-14", video: false, audioUrl: "Sit Back n Remain (freesstyle).mp3" },
+        { id: 204, title: "Sky's The Limit", duration: "1:20", date: "2003-07-04", video: false, audioUrl: "Sky's The limit.mp3" },
+        { id: 205, title: "No Matter You Say", duration: "4:00", date: "2003-08-14", video: true, audioUrl: "No Matter You Say.mp3" }
       ]
     }
   ];
