@@ -811,60 +811,40 @@ const MusicPlayer = () => {
       setAudioLoading(true);
       
       try {
-        let audioUrl = null;
-        
         // Check cache first for instant loading
         if (urlCacheRef.current[currentTrack.audioUrl]) {
-          audioUrl = urlCacheRef.current[currentTrack.audioUrl];
-        } 
-        // Try Firebase Storage with caching
-        else if (storage && currentTrack.audioUrl) {
-          try {
-            const storageRef = ref(storage, currentTrack.audioUrl);
-            const url = await getDownloadURL(storageRef);
-            urlCacheRef.current[currentTrack.audioUrl] = url;
-            audioUrl = url;
-          } catch (err) {
-            console.log("Firebase Storage failed, trying direct path:", err);
-            audioUrl = `/${currentTrack.audioUrl}`;
-            urlCacheRef.current[currentTrack.audioUrl] = audioUrl;
-          }
-        } 
-        // Direct path fallback
-        else {
-          audioUrl = `/${currentTrack.audioUrl}`;
-          urlCacheRef.current[currentTrack.audioUrl] = audioUrl;
+          audioRef.current.src = urlCacheRef.current[currentTrack.audioUrl];
+          audioRef.current.load(); // Force preload
+          setAudioLoading(false);
+          return;
         }
         
-        // Set source and wait for it to be ready
-        audioRef.current.src = audioUrl;
-        
-        // Wait for audio to be loadable
-        await new Promise((resolve, reject) => {
-          const onCanPlay = () => {
-            audioRef.current.removeEventListener('canplay', onCanPlay);
-            audioRef.current.removeEventListener('error', onError);
-            resolve();
-          };
-          const onError = (e) => {
-            audioRef.current.removeEventListener('canplay', onCanPlay);
-            audioRef.current.removeEventListener('error', onError);
-            reject(e);
-          };
+        // Try Firebase Storage with caching
+        if (storage && currentTrack.audioUrl) {
+          const storageRef = ref(storage, currentTrack.audioUrl);
+          const url = await getDownloadURL(storageRef);
           
-          audioRef.current.addEventListener('canplay', onCanPlay);
-          audioRef.current.addEventListener('error', onError);
+          // Cache the URL for instant future access
+          urlCacheRef.current[currentTrack.audioUrl] = url;
+          
+          audioRef.current.src = url;
+          audioRef.current.load(); // Force preload
+          setAudioLoading(false);
+        } else {
+          // Direct path fallback
+          const directUrl = `/${currentTrack.audioUrl}`;
+          urlCacheRef.current[currentTrack.audioUrl] = directUrl;
+          audioRef.current.src = directUrl;
           audioRef.current.load();
-        });
-        
-        setAudioLoading(false);
-        
-        // Auto-play if isPlaying is true
-        if (isPlaying) {
-          audioRef.current.play().catch(e => console.log('Playback failed:', e));
+          setAudioLoading(false);
         }
       } catch (err) {
-        console.error("Audio loading error:", err);
+        console.log("Trying direct audio path:", currentTrack.audioUrl);
+        // Direct fallback with caching
+        const directUrl = `/${currentTrack.audioUrl}`;
+        urlCacheRef.current[currentTrack.audioUrl] = directUrl;
+        audioRef.current.src = directUrl;
+        audioRef.current.load();
         setAudioLoading(false);
       }
     };
@@ -874,18 +854,8 @@ const MusicPlayer = () => {
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isPlaying) {
-      // Ensure audio is ready before playing
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.log("Playback prevented, waiting for user interaction:", error);
-          setIsPlaying(false);
-        });
-      }
-    } else {
-      audioRef.current.pause();
-    }
+    if (isPlaying) audioRef.current.play();
+    else audioRef.current.pause();
   }, [isPlaying]);
 
   const handleTrackClick = (track) => {
