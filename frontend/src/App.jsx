@@ -921,23 +921,25 @@ const TourHistory = () => {
   ];
 
   return (
-    <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
+    <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-2 md:p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/70 z-10"></div>
       <div className="relative z-30 w-full max-w-5xl h-[85vh] bg-[#111] border border-[#333] shadow-2xl flex flex-col font-sans">
         <div className="bg-[#2d2d2d] text-gray-400 px-2 py-1 flex justify-between items-center border-b border-[#444] shadow-none">
            <div className="flex items-center gap-2">
              <Globe size={14} className="text-[#00ff41]"/>
-             <span className="text-xs font-bold text-gray-300 font-sans">TicketHub 2004 - Livewire Events</span>
+             <span className="text-[10px] md:text-xs font-bold text-gray-300 font-sans"><span className="hidden sm:inline">TicketHub 2004 - </span>Livewire Events</span>
            </div>
         </div>
         <div className="flex-1 overflow-y-auto bg-[#050505] p-0 text-gray-300">
-           <div className="bg-[#111] text-white p-4 border-b-2 border-[#00ff41] flex justify-between items-end">
+           <div className="bg-[#111] text-white p-3 md:p-4 border-b-2 border-[#00ff41] flex justify-between items-end">
              <div>
-               <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-1 italic font-sans text-white">TICKET_HUB <span className="text-[#00ff41]">2004</span></h1>
+               <h1 className="text-xl sm:text-2xl md:text-4xl font-black tracking-tighter mb-1 italic font-sans text-white">TICKET_HUB <span className="text-[#00ff41]">2004</span></h1>
              </div>
            </div>
-           <div className="p-4">
+           
+           {/* Desktop: Table view */}
+           <div className="p-4 hidden md:block">
              <table className="w-full text-left border-collapse border border-[#333] bg-[#050505] text-xs md:text-sm shadow-none font-sans">
                 <thead className="bg-[#1a1a1a] text-[#00ff41]">
                   <tr>
@@ -982,23 +984,59 @@ const TourHistory = () => {
                   ))}
                 </tbody>
              </table>
+           </div>
+           
+           {/* Mobile: Card view */}
+           <div className="md:hidden p-3 space-y-3">
+             {dates.map((gig, i) => (
+               <div key={i} className="border border-[#333] bg-[#0a0a0a] p-3">
+                 <div className="flex justify-between items-start mb-2">
+                   <div>
+                     <div className="text-white font-bold text-sm uppercase">WHIP MONTEZ - LIVE</div>
+                     <div className="text-[11px] text-gray-400 font-bold">{gig.venue}</div>
+                   </div>
+                   <div className="text-right">
+                     <div className="text-[#00ff41] font-mono font-bold text-sm">{gig.price}</div>
+                     <div className="text-[10px] text-gray-600">{gig.date}</div>
+                   </div>
+                 </div>
+                 <div className="text-[10px] text-gray-600 mb-2">{gig.city}</div>
+                 <div className="text-[10px] text-gray-500 italic mb-2">{gig.info}</div>
+                 <div className="flex justify-between items-center">
+                   <div className="text-[10px] text-gray-600 font-bold">
+                     {gig.seats} {gig.seats === "0" ? "SOLD OUT" : "seats left"}
+                   </div>
+                   {gig.status === 'SOLD OUT' ? (
+                     <span className="text-red-500 text-xs font-bold">SOLD OUT</span>
+                   ) : gig.status === 'COMPLETED' ? (
+                     <span className="text-gray-500 text-xs font-bold">CLOSED</span>
+                   ) : (
+                     <button className="bg-[#00ff41] text-black px-4 py-1.5 text-xs font-black hover:bg-white transition-colors flex items-center gap-1">
+                       <Ticket size={12} strokeWidth={3}/> BUY NOW
+                     </button>
+                   )}
+                 </div>
+               </div>
+             ))}
+           </div>
              
-             {/* Footer Legal */}
+           {/* Footer Legal */}
+           <div className="p-3 md:p-4">
              <div className="mt-6 border-t border-[#333] pt-2 flex flex-col gap-1">
-                <div className="flex gap-4 text-[10px] text-gray-500 font-bold underline">
+                <div className="flex flex-wrap gap-2 md:gap-4 text-[9px] md:text-[10px] text-gray-500 font-bold underline">
                    <span className="hover:text-white cursor-pointer">Privacy Policy</span>
                    <span className="hover:text-white cursor-pointer">Terms of Use</span>
                    <span className="hover:text-white cursor-pointer">Purchase Policy</span>
                    <span className="hover:text-white cursor-pointer">Sell Tickets</span>
                 </div>
-                <div className="text-[9px] text-gray-600 font-mono mt-2">
+                <div className="text-[8px] md:text-[9px] text-gray-600 font-mono mt-2">
                    * All times are Eastern Standard Time. Prices do not include service fees ($4.50) or facility charges.<br/>
                    * Livewire Entertainment is not responsible for lost or stolen tickets.
                 </div>
                 <div className="mt-4 flex items-center gap-2 opacity-50">
-                   <div className="h-6 w-10 border border-gray-600 bg-black flex items-center justify-center text-[8px] font-bold text-gray-400 italic">VISA</div>
-                   <div className="h-6 w-10 border border-gray-600 bg-black flex items-center justify-center text-[8px] font-bold text-gray-400 italic">MC</div>
-                   <div className="h-6 w-10 border border-gray-600 bg-black flex items-center justify-center text-[8px] font-bold text-gray-400 italic">AMEX</div>
+                   <div className="h-5 md:h-6 w-8 md:w-10 border border-gray-600 bg-black flex items-center justify-center text-[7px] md:text-[8px] font-bold text-gray-400 italic">VISA</div>
+                   <div className="h-5 md:h-6 w-8 md:w-10 border border-gray-600 bg-black flex items-center justify-center text-[7px] md:text-[8px] font-bold text-gray-400 italic">MC</div>
+                   <div className="h-5 md:h-6 w-8 md:w-10 border border-gray-600 bg-black flex items-center justify-center text-[7px] md:text-[8px] font-bold text-gray-400 italic">AMEX</div>
                 </div>
              </div>
            </div>
