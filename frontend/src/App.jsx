@@ -803,15 +803,18 @@ const MusicPlayer = () => {
     }
   ];
 
-  // Load audio when track changes
+  // Load audio when track changes ONLY
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
     
     const audio = audioRef.current;
     const shouldAutoPlay = isPlaying;
+    let canPlayListener = null;
     
-    const loadAudio = async () => {
+    const loadAndPlay = async () => {
       try {
+        setAudioLoading(true);
+        
         // Get the URL
         let url;
         if (storage && currentTrack.audioUrl) {
@@ -821,57 +824,113 @@ const MusicPlayer = () => {
           url = `/${currentTrack.audioUrl}`;
         }
         
-        // Set source and load
+        // Set source
         audio.src = url;
+        
+        // Wait for audio to be ready before playing
+        canPlayListener = () => {
+          setAudioLoading(false);
+          if (shouldAutoPlay) {
+            audio.play().catch(err => console.log("Play error:", err));
+          }
+        };
+        
+        audio.addEventListener('canplay', canPlayListener, { once: true });
         audio.load();
         
-        // If should auto-play, wait for canplay event
-        if (shouldAutoPlay) {
-          const onCanPlay = () => {
-            audio.play().catch(err => console.log("Play error:", err));
-          };
-          audio.addEventListener('canplay', onCanPlay, { once: true });
-        }
       } catch (err) {
         console.log("Audio load error, trying direct path:", err);
         audio.src = `/${currentTrack.audioUrl}`;
-        audio.load();
         
-        if (shouldAutoPlay) {
-          const onCanPlay = () => {
+        canPlayListener = () => {
+          setAudioLoading(false);
+          if (shouldAutoPlay) {
             audio.play().catch(err => console.log("Play error:", err));
-          };
-          audio.addEventListener('canplay', onCanPlay, { once: true });
-        }
+          }
+        };
+        
+        audio.addEventListener('canplay', canPlayListener, { once: true });
+        audio.load();
       }
     };
     
-    loadAudio();
+    loadAndPlay();
+    
+    // Cleanup
+    return () => {
+      if (canPlayListener) {
+        audio.removeEventListener('canplay', canPlayListener);
+      }
+    };
   }, [currentTrack]);
 
-  // Control playback ONLY when isPlaying changes (not when track changes)
+  // Separate effect for play/pause button (when track doesn't change)
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
     
-    if (isPlaying) {
-      audioRef.current.play().catch(err => {
-        console.log("Play error:", err);
-      });
-    } else {
-      audioRef.current.pause();
+    const audio = audioRef.current;
+    
+    // Control playback whenever isPlaying changes
+    if (audio.src) {
+      if (isPlaying) {
+        // Only play if not already playing
+        if (audio.paused) {
+          audio.play().catch(err => console.log("Play error:", err));
+        }
+      } else {
+        // Only pause if currently playing
+        if (!audio.paused) {
+          audio.pause();
+        }
+      }
     }
   }, [isPlaying]);
+
+  const activeAlbum = albums.find(a => a.id === selectedAlbumId) || albums[0];
 
   const handleTrackClick = (track) => {
     if (currentTrack?.id === track.id) {
       setIsPlaying(!isPlaying);
     } else {
+      // For desktop: preserve user gesture by calling play immediately
+      if (audioRef.current) {
+        audioRef.current.play().catch(() => {}); // This preserves the gesture
+      }
       setCurrentTrack(track);
       setIsPlaying(true);
     }
   };
 
-  const activeAlbum = albums.find(a => a.id === selectedAlbumId) || albums[0];
+  // Previous track handler
+  const handlePrevious = () => {
+    if (!currentTrack) return;
+    const currentIndex = activeAlbum.tracks.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex > 0) {
+      const prevTrack = activeAlbum.tracks[currentIndex - 1];
+      setCurrentTrack(prevTrack);
+      setIsPlaying(true);
+    }
+  };
+
+  // Next track handler
+  const handleNext = () => {
+    if (!currentTrack) return;
+    const currentIndex = activeAlbum.tracks.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex < activeAlbum.tracks.length - 1) {
+      const nextTrack = activeAlbum.tracks[currentIndex + 1];
+      setCurrentTrack(nextTrack);
+      setIsPlaying(true);
+    }
+  };
+
+  // Stop handler
+  const handleStop = () => {
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
 
   const getLyricsForAlbum = (id) => {
     switch(id) {
@@ -1074,18 +1133,33 @@ const MusicPlayer = () => {
              </div>
              
              <div className="grid grid-cols-4 gap-2">
-                <button className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"><Rewind size={16}/></button>
+                <button 
+                  onClick={handlePrevious}
+                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Rewind size={16}/>
+                </button>
                 <button 
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className={`bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center transition-colors ${
+                  className={`bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                     audioLoading ? 'text-emerald-400 cursor-wait' : 'text-[#666] hover:text-[#00ff41]'
                   }`}
-                  disabled={audioLoading}
+                  disabled={audioLoading || !currentTrack}
                 >
                   {audioLoading ? <Loader2 size={16} className="animate-spin"/> : isPlaying ? <Pause size={16}/> : <Play size={16}/>}
                 </button>
-                <button className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"><div className="w-3 h-3 bg-current rounded-sm"></div></button>
-                <button className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors"><div className="flex"><Play size={10}/><Play size={10}/></div></button>
+                <button 
+                  onClick={handleStop}
+                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="w-3 h-3 bg-current rounded-sm"></div>
+                </button>
+                <button 
+                  onClick={handleNext}
+                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex"><Play size={10}/><Play size={10}/></div>
+                </button>
              </div>
           </div>
 
@@ -3093,7 +3167,8 @@ const OSInterface = ({ reboot }) => {
           await signInAnonymously(auth);
         }
       } catch (error) {
-        console.error("Authentication failed:", error);
+        // Auth failed (e.g., anonymous auth disabled) - use guest mode
+        console.log("Running in guest mode (auth not configured)");
         setUser({ uid: "guest", isAnonymous: true });
       }
     };
