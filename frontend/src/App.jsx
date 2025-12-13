@@ -568,12 +568,9 @@ const Bio = ({ setSection, user = null }) => {
   const [photos, setPhotos] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-
-  console.log('=== BIO COMPONENT DEBUG v2.1 ===');
-  console.log('Bio component - user:', user);
-  console.log('Bio component - viewMode:', viewMode);
-  console.log('Bio component - photos:', photos);
-  console.log('=================================');
+  const [uploadAsFeatured, setUploadAsFeatured] = useState(false);
+  const [featuredPhotos, setFeaturedPhotos] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Load photos from Firebase on mount
   useEffect(() => {
@@ -586,31 +583,24 @@ const Bio = ({ setSection, user = null }) => {
         const snapshot = await getDocs(q);
         const photoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPhotos(photoList);
+        
+        // Filter featured photos for Bio section
+        const featured = photoList.filter(p => p.featured).slice(0, 6);
+        setFeaturedPhotos(featured);
       } catch (err) {
-        console.log('Error loading photos:', err);
+        // Silent fail - photos will remain empty
       }
     };
     
     loadPhotos();
   }, []);
 
-  // Upload photo to Firebase (admin only)
-  const handleUpload = async () => {
-    if (!uploadFile || !storage || !db) return;
-    
-    setUploading(true);
+  // Toggle featured status
+  const toggleFeatured = async (photoId, currentStatus) => {
+    if (!db) return;
     try {
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, `memory-lane/${Date.now()}_${uploadFile.name}`);
-      await uploadBytes(storageRef, uploadFile);
-      const url = await getDownloadURL(storageRef);
-      
-      // Save metadata to Firestore
-      await addDoc(collection(db, 'memoryLane'), {
-        url,
-        caption: '',
-        uploadedAt: new Date().toISOString()
-      });
+      const photoRef = doc(db, 'memoryLane', photoId);
+      await updateDoc(photoRef, { featured: !currentStatus });
       
       // Reload photos
       const photosRef = collection(db, 'memoryLane');
@@ -619,13 +609,77 @@ const Bio = ({ setSection, user = null }) => {
       const photoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPhotos(photoList);
       
-      setUploadFile(null);
-      alert('Photo uploaded successfully!');
+      // Update featured photos
+      const featured = photoList.filter(p => p.featured).slice(0, 6);
+      setFeaturedPhotos(featured);
     } catch (err) {
-      console.error('Upload error:', err);
-      alert('Upload failed');
+      // Silent fail
     }
-    setUploading(false);
+  };
+
+  // Upload photo to Firebase (admin only)
+  const handleUpload = async () => {
+    if (!uploadFile) {
+      alert('Please select a file first');
+      return;
+    }
+    
+    if (!storage) {
+      alert('Firebase Storage not configured');
+      return;
+    }
+    
+    if (!db) {
+      alert('Firebase Firestore not configured');
+      return;
+    }
+    
+    setUploading(true);
+    
+    // Add timeout to prevent infinite hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+    );
+    
+    try {
+      await Promise.race([
+        (async () => {
+          // Upload to Firebase Storage
+          const storageRef = ref(storage, `memory-lane/${Date.now()}_${uploadFile.name}`);
+          await uploadBytes(storageRef, uploadFile);
+          const url = await getDownloadURL(storageRef);
+          
+          // Save metadata to Firestore
+          await addDoc(collection(db, 'memoryLane'), {
+            url,
+            caption: '',
+            uploadedAt: new Date().toISOString(),
+            featured: uploadAsFeatured
+          });
+          
+          // Reload photos
+          const photosRef = collection(db, 'memoryLane');
+          const q = query(photosRef, orderBy('uploadedAt', 'desc'));
+          const snapshot = await getDocs(q);
+          const photoList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setPhotos(photoList);
+          
+          // Update featured photos
+          const featured = photoList.filter(p => p.featured).slice(0, 6);
+          setFeaturedPhotos(featured);
+          
+          setUploadFile(null);
+          setUploadAsFeatured(false);
+          alert('Photo uploaded successfully!');
+        })(),
+        timeoutPromise
+      ]);
+    } catch (err) {
+      console.error('Upload failed:', err.code, err.message);
+      alert(`Upload failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -674,6 +728,18 @@ const Bio = ({ setSection, user = null }) => {
                <div className="text-xs text-white font-bold">JARI MONTEZ (Brother/Manager)</div>
                <div className="text-xs text-gray-400">jari@livewire-ent.com</div>
              </div>
+
+             {/* Admin Login Section */}
+             <div className="hidden md:block border-t border-[#333] pt-4 mt-4">
+               <button 
+                 onClick={() => setIsAdmin(!isAdmin)}
+                 className={`w-full py-2 text-[10px] font-bold tracking-widest uppercase border transition-all ${
+                   isAdmin ? 'bg-[#00ff41] text-black border-[#00ff41]' : 'border-[#333] text-gray-600 hover:border-gray-400'
+                 }`}
+               >
+                 {isAdmin ? 'ADMIN MODE: ON' : 'GALLERY ADMIN'}
+               </button>
+             </div>
            </div>
         </div>
 
@@ -684,40 +750,51 @@ const Bio = ({ setSection, user = null }) => {
              <h1 className="text-lg md:text-4xl font-black tracking-tighter">
                {viewMode === 'bio' ? 'OFFICIAL PROFILE' : 'MEMORY LANE'}
              </h1>
-             <div className="flex items-center gap-2">
+             <div className="flex items-center gap-1">
                {/* Toggle Buttons */}
                <button
                  onClick={() => setViewMode('bio')}
-                 className={`px-2 md:px-4 py-1 md:py-2 text-[10px] md:text-xs font-bold transition-all ${
-                   viewMode === 'bio' ? 'bg-black text-[#00ff41]' : 'bg-black/20 text-black hover:bg-black/40'
+                 className={`px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-black tracking-wider border-2 transition-all ${
+                   viewMode === 'bio' 
+                     ? 'bg-black text-[#00ff41] border-[#00ff41] shadow-[0_0_10px_rgba(0,255,65,0.5)]' 
+                     : 'bg-transparent text-black border-black hover:bg-black/10'
                  }`}
                >
                  BIO
                </button>
                <button
-                 onClick={() => {
-                   console.log('MEMORY button clicked');
-                   setViewMode('memory');
-                 }}
-                 className={`px-2 md:px-4 py-1 md:py-2 text-[10px] md:text-xs font-bold transition-all ${
-                   viewMode === 'memory' ? 'bg-black text-[#00ff41]' : 'bg-black/20 text-black hover:bg-black/40'
+                 onClick={() => setViewMode('memory')}
+                 className={`px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm font-black tracking-wider border-2 transition-all ${
+                   viewMode === 'memory' 
+                     ? 'bg-black text-[#00ff41] border-[#00ff41] shadow-[0_0_10px_rgba(0,255,65,0.5)]' 
+                     : 'bg-transparent text-black border-black hover:bg-black/10'
                  }`}
                >
-                 <Camera size={12} className="inline mr-1" />
+                 <Camera size={14} className="inline mr-1" />
                  MEMORY
                </button>
              </div>
            </div>
 
            {/* Scrollable Content */}
-           <div className="flex-1 overflow-y-auto p-3 md:p-8 overscroll-contain" style={{WebkitOverflowScrolling: 'touch'}}>
+           <div className="flex-1 overflow-y-auto overscroll-contain" style={{WebkitOverflowScrolling: 'touch'}}>
              {viewMode === 'bio' ? (
                // BIO CONTENT
-               <div className="max-w-2xl mx-auto space-y-4 md:space-y-8">
-                 
-                 {/* Quote */}
+               <>
+                 {/* Bio Header - Full Width */}
+                 <div className="bg-black border-t-4 border-b-4 border-[#00ff41] p-5 md:p-6 mb-8">
+                   <h2 className="text-2xl md:text-4xl font-black text-[#00ff41] mb-2 uppercase tracking-tight">
+                     OFFICIAL PROFILE
+                   </h2>
+                   <p className="text-gray-400 text-xs md:text-sm font-mono">
+                     Artist Bio • Stats • Career Highlights • Featured Photos
+                   </p>
+                 </div>
+
+               <div className="max-w-2xl mx-auto space-y-4 md:space-y-8 px-3 md:px-8">
+                 {/* Artist Statement */}
                  <blockquote className="border-l-4 border-[#00ff41] pl-6 py-2">
-                   <p className="text-xl md:text-2xl font-bold text-white italic leading-relaxed">
+                   <p className="text-lg md:text-xl font-mono text-white leading-relaxed">
                       "I’ve paid my dues… I’ve developed my skills… I am ready."
                    </p>
                  </blockquote>
@@ -726,19 +803,19 @@ const Bio = ({ setSection, user = null }) => {
                  <div className="grid grid-cols-2 gap-3 md:gap-4 border-y border-[#333] py-4 md:py-6 my-4 md:my-6">
                    <div>
                       <div className="text-[9px] md:text-[10px] text-gray-500 font-mono uppercase">Name</div>
-                      <div className="text-[#00ff41] font-bold text-xs md:text-base">Wanda Altagracia Almonte</div>
+                      <div className="text-white font-mono text-xs md:text-base">Wanda Altagracia Almonte</div>
                    </div>
                    <div>
                       <div className="text-[9px] md:text-[10px] text-gray-500 font-mono uppercase">Origin</div>
-                      <div className="text-[#00ff41] font-bold text-xs md:text-base">Red Hook, Brooklyn</div>
+                      <div className="text-white font-mono text-xs md:text-base">Red Hook, Brooklyn</div>
                    </div>
                    <div>
                       <div className="text-[9px] md:text-[10px] text-gray-500 font-mono uppercase">Key Features</div>
-                      <div className="text-[#00ff41] font-bold text-xs md:text-base">Erick Sermon, Talib Kweli</div>
+                      <div className="text-white font-mono text-xs md:text-base">Erick Sermon, Talib Kweli</div>
                    </div>
                    <div>
                       <div className="text-[9px] md:text-[10px] text-gray-500 font-mono uppercase">Education</div>
-                      <div className="text-[#00ff41] font-bold text-xs md:text-base">LaGuardia HS (Dance)</div>
+                      <div className="text-white font-mono text-xs md:text-base">LaGuardia HS (Dance)</div>
                    </div>
                  </div>
 
@@ -799,22 +876,41 @@ const Bio = ({ setSection, user = null }) => {
                    <h3 className="text-white text-base md:text-lg font-black uppercase tracking-wider border-b border-[#00ff41] pb-2 mb-4 mt-8">Memories: The Journey in Pictures</h3>
                    
                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 my-6">
-                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                       <div key={i} className="aspect-square bg-[#1a1a1a] border-2 border-[#333] relative overflow-hidden group hover:border-[#00ff41] transition-all">
-                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
-                           <Camera size={32} className="md:w-12 md:h-12 mb-2 opacity-20" />
-                           <div className="text-[10px] md:text-xs font-mono">PHOTO {i}</div>
-                           <div className="text-[8px] md:text-[10px] font-mono opacity-50">Coming Soon</div>
+                     {featuredPhotos.length > 0 ? (
+                       featuredPhotos.map((photo) => (
+                         <div key={photo.id} className="aspect-square bg-[#1a1a1a] border-2 border-[#333] relative overflow-hidden group hover:border-[#00ff41] transition-all cursor-pointer">
+                           <img 
+                             src={photo.url} 
+                             alt={photo.caption || 'Memory'} 
+                             className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                           />
+                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                             <div className="text-[#00ff41] text-[9px] md:text-[10px] font-mono font-bold">
+                               {photo.caption || 'RED HOOK ARCHIVES'}
+                             </div>
+                           </div>
                          </div>
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                           <div className="text-[#00ff41] text-[9px] md:text-[10px] font-mono">RED HOOK ARCHIVES</div>
+                       ))
+                     ) : (
+                       [1, 2, 3, 4, 5, 6].map((i) => (
+                         <div key={i} className="aspect-square bg-[#1a1a1a] border-2 border-[#333] relative overflow-hidden group hover:border-[#00ff41] transition-all">
+                           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
+                             <Camera size={32} className="md:w-12 md:h-12 mb-2 opacity-20" />
+                             <div className="text-[10px] md:text-xs font-mono">PHOTO {i}</div>
+                             <div className="text-[8px] md:text-[10px] font-mono opacity-50">Coming Soon</div>
+                           </div>
+                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                             <div className="text-[#00ff41] text-[9px] md:text-[10px] font-mono">RED HOOK ARCHIVES</div>
+                           </div>
                          </div>
-                       </div>
-                     ))}
+                       ))
+                     )}
                    </div>
 
                    <p className="text-[10px] md:text-xs text-gray-500 italic text-center border-t border-[#333] pt-4">
-                      Photo gallery showcasing studio sessions, live performances, and behind-the-scenes moments from the Livewire era. Check back soon for updates.
+                      {featuredPhotos.length > 0 
+                        ? `Featured photos from the archives. Visit Memory Lane for the complete collection.`
+                        : `Photo gallery showcasing studio sessions, live performances, and behind-the-scenes moments from the Livewire era. Check back soon for updates.`}
                    </p>
 
                    <p className="mt-8 text-[#00ff41] font-bold border-t border-[#333] pt-4">
@@ -822,16 +918,21 @@ const Bio = ({ setSection, user = null }) => {
                    </p>
                  </div>
                </div>
+               </>
              ) : (
                // MEMORY LANE GALLERY
                <div className="w-full min-h-full">
-                 <div className="mb-6 md:mb-8 text-center border-b border-[#00ff41] pb-4">
-                   <h2 className="text-2xl md:text-3xl font-black text-[#00ff41] mb-2 uppercase tracking-wider">MEMORY LANE</h2>
-                   <p className="text-white text-sm md:text-base font-mono">Studio sessions, shows, and behind-the-scenes moments from the Livewire era</p>
+                 <div className="bg-black border-t-4 border-b-4 border-[#00ff41] p-5 md:p-6 mb-8">
+                   <h2 className="text-2xl md:text-4xl font-black text-[#00ff41] mb-2 uppercase tracking-tight">
+                     MEMORY LANE
+                   </h2>
+                   <p className="text-gray-400 text-xs md:text-sm font-mono">
+                     Studio Sessions • Live Shows • Behind The Scenes • 2000-2004
+                   </p>
                  </div>
 
                  {/* Admin Upload (only show if authenticated) */}
-                 {user && !user.isAnonymous && (
+                 {isAdmin && (
                    <div className="bg-[#1a1a1a] border-2 border-[#00ff41] p-4 md:p-6 mb-6 md:mb-8">
                      <h3 className="text-[#00ff41] font-bold text-base md:text-lg mb-3 flex items-center gap-2 uppercase">
                        <Upload size={18} />
@@ -851,6 +952,18 @@ const Bio = ({ setSection, user = null }) => {
                        >
                          {uploading ? 'UPLOADING...' : 'UPLOAD'}
                        </button>
+                     </div>
+                     <div className="mt-2 flex items-center gap-2">
+                       <input
+                         type="checkbox"
+                         id="featuredCheck"
+                         checked={uploadAsFeatured}
+                         onChange={(e) => setUploadAsFeatured(e.target.checked)}
+                         className="w-4 h-4 bg-[#0a0a0a] border-[#00ff41]"
+                       />
+                       <label htmlFor="featuredCheck" className="text-xs text-gray-300 font-mono cursor-pointer">
+                         ⭐ Featured (Show in Bio section)
+                       </label>
                      </div>
                      {uploadFile && (
                        <div className="mt-2 text-xs text-gray-300 font-mono">
@@ -877,6 +990,22 @@ const Bio = ({ setSection, user = null }) => {
                                RED HOOK
                              </div>
                            </div>
+                           {/* Featured badge */}
+                           {photo.featured && (
+                             <div className="absolute top-2 left-2 bg-[#00ff41] text-black px-2 py-1 text-[9px] font-bold uppercase flex items-center gap-1">
+                               ⭐ FEATURED
+                             </div>
+                           )}
+                           {/* Admin toggle featured button */}
+                           {isAdmin && (
+                             <button
+                               onClick={() => toggleFeatured(photo.id, photo.featured)}
+                               className="absolute top-2 right-2 bg-black/80 hover:bg-black text-[#00ff41] p-2 text-xs font-bold border border-[#00ff41] opacity-0 group-hover:opacity-100 transition-opacity"
+                               title={photo.featured ? 'Remove from Bio' : 'Add to Bio'}
+                             >
+                               {photo.featured ? '⭐' : '☆'}
+                             </button>
+                           )}
                            {/* Caption overlay */}
                            <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black via-black/80 to-transparent">
                              <div className="text-[#00ff41] text-xs md:text-sm font-mono font-bold uppercase tracking-wider">
@@ -2486,36 +2615,36 @@ const NewsArchive = () => {
     <div className="h-full w-full relative overflow-hidden flex items-center justify-center p-4">
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10"></div>
-      <div className={`relative z-30 w-full max-w-5xl h-[85vh] border-2 shadow-[0_0_40px_rgba(0,255,65,0.1)] flex flex-col font-mono text-gray-300 transition-colors duration-500 ${mode === 'historical' ? 'bg-[#0a0a0a] border-[#333]' : 'bg-[#050510] border-cyan-800'}`}>
-        <div className={`${mode === 'historical' ? 'bg-[#00ff41] text-black' : 'bg-cyan-500 text-black'} p-4 border-b-4 border-black flex justify-between items-end transition-colors duration-500`}>
+      <div className={`relative z-30 w-full max-w-5xl h-[85vh] shadow-[0_0_40px_rgba(0,255,65,0.1)] flex flex-col font-mono text-gray-300 transition-colors duration-500 ${mode === 'historical' ? 'bg-[#0a0a0a]' : 'bg-[#050510]'}`}>
+        <div className={`${mode === 'historical' ? 'bg-[#00ff41] text-black' : 'bg-cyan-500 text-black'} p-4 md:p-6 border-t-4 border-b-4 ${mode === 'historical' ? 'border-[#00ff41]' : 'border-cyan-500'} flex justify-between items-end transition-colors duration-500`}>
            <div>
              <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-none flex items-center gap-4">
                <Globe size={48} strokeWidth={2.5}/> {mode === 'historical' ? 'THE_FEED' : 'VIRAL_DASH'}
              </h1>
            </div>
            
-           <div className="flex items-center gap-2">
-              <div className="mt-4 max-w-md flex items-center gap-2 bg-black/20 p-1 rounded-sm">
-                <Search size={16} className="text-black ml-2"/>
+           <div className="flex items-center gap-4">
+              <div className="flex-1 max-w-xl flex items-center gap-2 bg-black/30 p-3 rounded border-2 border-black">
+                <Search size={20} className="text-black ml-1"/>
                 <input 
                   type="text" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={mode === 'historical' ? "SEARCH ARCHIVES..." : "SEARCH WEB (e.g. 'Drake News')"}
-                  className="bg-transparent border-none outline-none text-black font-bold text-xs w-full placeholder-black/50"
+                  className="bg-transparent border-none outline-none text-black font-black text-base md:text-lg w-full placeholder-black/60"
                   onKeyPress={(e) => e.key === 'Enter' && fetchNews(mode)}
                 />
                 {mode === 'modern' && (
-                    <button onClick={() => fetchNews(mode)} className="bg-black text-cyan-500 px-3 py-1 text-xs font-bold rounded-sm">GO</button>
+                    <button onClick={() => fetchNews(mode)} className="bg-black text-cyan-500 px-4 py-2 text-sm font-black rounded border-2 border-black hover:border-cyan-400 transition-all">GO</button>
                 )}
              </div>
              
-              <div className="flex items-center gap-2 bg-black/20 p-1 rounded ml-4">
-                  <span className={`text-xs font-bold ${mode === 'historical' ? 'text-black opacity-100' : 'text-black opacity-50'}`}>2004</span>
+              <div className="flex items-center gap-3 bg-black/30 p-2 rounded border-2 border-black">
+                  <span className={`text-xs md:text-sm font-black ${mode === 'historical' ? 'text-black opacity-100' : 'text-black opacity-50'}`}>2004</span>
                   <button onClick={() => fetchNews(mode === 'historical' ? 'modern' : 'historical')} disabled={loading} className="focus:outline-none">
-                    {mode === 'historical' ? <ToggleLeft size={32} /> : <ToggleRight size={32} />}
+                    {mode === 'historical' ? <ToggleLeft size={36} /> : <ToggleRight size={36} />}
                   </button>
-                  <span className={`text-xs font-bold ${mode === 'modern' ? 'text-black opacity-100' : 'text-black opacity-50'}`}>2024</span>
+                  <span className={`text-xs md:text-sm font-black ${mode === 'modern' ? 'text-black opacity-100' : 'text-black opacity-50'}`}>2024</span>
                </div>
            </div>
         </div>
@@ -3580,8 +3709,107 @@ const OSInterface = ({ reboot }) => {
   );
 };
 
+// Landing Page Component
+const LandingPage = ({ onEnter }) => {
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+
+  const handleEnterClick = () => {
+    setIsEntering(true);
+    setTimeout(() => {
+      onEnter();
+    }, 2500); 
+  };
+
+  return (
+    <div className="h-screen w-full bg-black flex flex-col items-center justify-center relative overflow-hidden z-[110] font-sans">
+      {/* Subtle modern mesh bg */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#051a05] via-black to-black opacity-80"></div>
+      
+      {/* Disclaimer Modal */}
+      {showDisclaimer && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]">
+          <div className="border border-[#00ff41] bg-black p-6 max-w-md w-full shadow-[0_0_30px_rgba(0,255,65,0.1)] relative">
+            <button 
+              onClick={() => setShowDisclaimer(false)} 
+              className="absolute top-3 right-3 text-[#00ff41]/50 hover:text-[#00ff41] transition-colors"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-center gap-2 text-[#00ff41] mb-4">
+              <ShieldAlert size={18} />
+              <h3 className="font-mono font-bold text-sm tracking-widest">DISCLAIMER</h3>
+            </div>
+            <p className="text-gray-400 font-mono text-xs leading-relaxed mb-4">
+              This website is an <strong>Alternate Reality Experience</strong> (ARE). The content, characters, and events depicted are fictionalized for entertainment purposes. Any resemblance to actual persons, living or dead, or actual events is purely coincidental.
+            </p>
+            <div className="w-full h-[1px] bg-[#00ff41]/20 mb-2"></div>
+            <p className="text-[#00ff41]/40 font-mono text-[10px]">
+              TERMINAL_ID: WHIP-OS-V2 // STATUS: SIMULATION
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className={`z-10 flex flex-col items-center transition-all duration-1000 ease-in-out ${isEntering ? 'space-y-0 justify-center h-full' : 'space-y-16'}`}>
+        <div className={`text-center relative transition-all duration-1500 ease-in-out transform ${isEntering ? 'scale-50 translate-y-4' : 'scale-100'}`}>
+          
+          {/* New Disclaimer Text - Stays at top */}
+          <p className={`text-[#00ff41]/70 text-[10px] md:text-xs font-light tracking-[0.6em] uppercase mb-6 animate-pulse select-none font-sans transition-opacity duration-500 ${isEntering ? 'opacity-0' : 'opacity-100'}`}>
+            Alternative Reality Experience
+          </p>
+
+          {/* Neon Green Thin Solid Font - Single Line with Hover Effect */}
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-thin text-[#00ff41] tracking-tighter drop-shadow-[0_0_10px_rgba(0,255,65,0.8)] select-none scale-y-125 transform mb-8 font-sans whitespace-nowrap transition-all duration-500 cursor-default hover:drop-shadow-[0_0_35px_#00ff41] hover:text-[#e0ffe0]">
+            WHIP MONTEZ
+          </h1>
+
+          {/* Tagline Moved Back Below */}
+          <p className="text-white/40 text-xs font-light tracking-[0.8em] mt-4 uppercase ml-2 transition-all duration-1000">
+            The Restored Experience
+          </p>
+
+          {/* The Expanding Line Animation */}
+          <div className={`h-[2px] bg-[#00ff41] shadow-[0_0_20px_#00ff41] mx-auto mt-8 transition-all duration-1500 ease-out ${isEntering ? 'w-[120%] opacity-100' : 'w-0 opacity-0'}`}></div>
+        </div>
+
+        <div className={`relative group cursor-pointer transition-all duration-700 ${isEntering ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}`} onClick={handleEnterClick}>
+          {/* Outer Ring Animation */}
+          <div className="absolute inset-[-10px] border border-dashed border-[#00ff41]/20 rounded-full w-[calc(100%+20px)] h-[calc(100%+20px)] opacity-0 group-hover:opacity-100 animate-[spin_8s_linear_infinite] pointer-events-none transition-opacity duration-700"></div>
+          
+          <button 
+            className="relative w-24 h-24 rounded-full bg-black border border-[#333] group-hover:border-[#00ff41]/50 transition-all duration-500 flex items-center justify-center shadow-[0_0_0_0_rgba(0,255,65,0)] group-hover:shadow-[0_0_40px_rgba(0,255,65,0.3)] active:scale-95"
+          >
+            {/* Glossy sheen top half */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent rounded-t-full pointer-events-none"></div>
+            
+            {/* Inner recess */}
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#111] to-black flex items-center justify-center shadow-[inset_0_2px_5px_rgba(0,0,0,1)] group-hover:bg-[#001100] transition-colors duration-500">
+              <Power 
+                size={32} 
+                className="text-[#444] group-hover:text-[#00ff41] transition-all duration-500 group-hover:drop-shadow-[0_0_10px_rgba(0,255,65,1)]" 
+                strokeWidth={3}
+              />
+            </div>
+          </button>
+        </div>
+      </div>
+      
+      <div className={`absolute bottom-8 w-full px-8 flex flex-col md:flex-row justify-between items-center text-[#00ff41]/30 font-mono text-[10px] tracking-widest uppercase gap-2 transition-opacity duration-1000 ${isEntering ? 'opacity-0' : 'opacity-100'}`}>
+        <span>System_Standby_Mode // Press Power to Boot</span>
+        <button 
+          onClick={() => setShowDisclaimer(true)}
+          className="hover:text-[#00ff41] transition-colors border-b border-transparent hover:border-[#00ff41] pb-[1px] cursor-pointer"
+        >
+          [ Notice: Disclaimer ]
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
-  const [booted, setBooted] = useState(false);
+  const [appState, setAppState] = useState('landing'); // 'landing' | 'booting' | 'ready'
 
   return (
     <div className="relative w-full h-screen bg-black text-white selection:bg-[#00ff41] selection:text-black font-sans">
@@ -3618,7 +3846,15 @@ export default function App() {
         <div className="scanline"></div>
         <div className="absolute inset-0 bg-black opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
       </div>
-      {!booted ? <BootSequence onComplete={() => setBooted(true)} /> : <OSInterface reboot={() => setBooted(false)} />}
+      
+      {/* Three-stage render: Landing -> Boot -> OS */}
+      {appState === 'landing' && <LandingPage onEnter={() => setAppState('booting')} />}
+      {appState === 'booting' && <BootSequence onComplete={() => setAppState('ready')} />}
+      {appState === 'ready' && <OSInterface reboot={() => setAppState('landing')} />}
     </div>
   );
 }
+
+
+
+
