@@ -7,7 +7,12 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "start": "cd backend && npm start",
-    "install": "cd backend && npm install"
+    "dev": "echo Starting frontend... && cd frontend && npm run dev",
+    "backend": "echo Starting backend... && cd backend && npm start",
+    "kill": "powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\" && echo All Node processes killed",
+    "fresh": "npm run kill && timeout /t 2 /nobreak && echo Starting fresh... && npm run backend",
+    "build": "cd frontend && npm run build",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "start": "cd backend && npm start"
   }
 }
