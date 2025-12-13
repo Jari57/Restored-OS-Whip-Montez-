@@ -861,30 +861,55 @@ const Bio = ({ setSection, user = null }) => {
                  )}
 
                  {/* Photo Grid */}
-                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
+                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
                    {photos.length > 0 ? (
                      photos.map((photo) => (
-                       <div key={photo.id} className="aspect-square bg-[#1a1a1a] border-2 border-[#333] relative overflow-hidden group hover:border-[#00ff41] transition-all cursor-pointer">
-                         <img 
-                           src={photo.url} 
-                           alt="Memory" 
-                           className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                         />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                           <div className="text-[#00ff41] text-xs font-mono font-bold uppercase">
-                             {photo.caption || 'RED HOOK ARCHIVES'}
+                       <div key={photo.id} className="group relative bg-[#111] border border-[#222] hover:border-[#00ff41]/50 transition-all duration-300 flex flex-col">
+                         <div className="aspect-[3/4] overflow-hidden relative bg-[#050505]">
+                           <img 
+                             src={photo.url} 
+                             alt={photo.caption || 'Memory'} 
+                             className="w-full h-full object-cover opacity-90 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
+                           />
+                           {/* Watermark */}
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                             <div className="text-white/10 text-2xl md:text-4xl font-black uppercase tracking-widest transform rotate-[-25deg] select-none" style={{textShadow: '0 0 40px rgba(0,0,0,0.5)'}}>
+                               RED HOOK
+                             </div>
+                           </div>
+                           {/* Caption overlay */}
+                           <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black via-black/80 to-transparent">
+                             <div className="text-[#00ff41] text-xs md:text-sm font-mono font-bold uppercase tracking-wider">
+                               {photo.caption || 'RED HOOK ARCHIVES'}
+                             </div>
+                             {photo.uploadedAt && (
+                               <div className="text-gray-400 text-[9px] md:text-[10px] font-mono mt-1">
+                                 {new Date(photo.uploadedAt).toLocaleDateString()}
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                         {/* Metadata below image */}
+                         <div className="p-2 md:p-3 flex-1 flex flex-col justify-between bg-[#111]">
+                           <div className="text-[10px] md:text-xs text-gray-400 font-mono truncate">
+                             {photo.caption || 'Untitled Memory'}
                            </div>
                          </div>
                        </div>
                      ))
                    ) : (
                      // Placeholder grid
-                     [...Array(12)].map((_, i) => (
-                       <div key={i} className="aspect-square bg-[#1a1a1a] border-2 border-[#00ff41]/30 relative overflow-hidden group hover:border-[#00ff41] transition-all">
-                         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                           <Camera size={40} className="mb-2 opacity-50 text-[#00ff41]" />
-                           <div className="text-sm font-mono font-bold text-white">PHOTO {i + 1}</div>
-                           <div className="text-xs font-mono opacity-70 mt-1">Coming Soon</div>
+                     [...Array(24)].map((_, i) => (
+                       <div key={i} className="group relative bg-[#111] border border-[#222] hover:border-[#00ff41]/30 transition-all duration-300 flex flex-col">
+                         <div className="aspect-[3/4] overflow-hidden relative bg-[#050505]">
+                           <div className="absolute inset-0 flex flex-col items-center justify-center">
+                             <Camera size={48} className="mb-3 opacity-20 text-[#00ff41] group-hover:opacity-40 transition-opacity" />
+                             <div className="text-sm md:text-base font-mono font-bold text-gray-600 group-hover:text-gray-500">SLOT {i + 1}</div>
+                             <div className="text-[9px] md:text-xs font-mono opacity-50 mt-1 text-gray-700">Awaiting Upload</div>
+                           </div>
+                         </div>
+                         <div className="p-2 md:p-3 bg-[#111]">
+                           <div className="text-[10px] text-gray-700 font-mono">Empty Slot</div>
                          </div>
                        </div>
                      ))
