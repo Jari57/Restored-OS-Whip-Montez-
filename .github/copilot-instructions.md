@@ -26,7 +26,7 @@ This repository is a two-part app: a Node/Express backend that proxies Google Ge
 ## How to run / developer workflows
 
 ### Prerequisites
-- Node.js 20.19.0 or higher (see `.nvmrc`)
+- Node.js 22.12.0 (see `.nvmrc`, minimum: 20.19.0)
 - Git
 - `GEMINI_API_KEY` in `backend/.env`
 
@@ -166,7 +166,7 @@ curl -X POST http://localhost:3001/api/generate -H "Content-Type: application/js
 - **Environment loading:** Uses `path.resolve(__dirname, '.env')` — API key must be in `backend/.env`, NOT repo root `.env`
 - **Port:** 3001 (configurable via PORT env var)
 - **Logging:** Winston logger with file rotation in `backend/logs/`
-- **Model:** Currently uses `gemini-1.5-flash` (configurable in server.js)
+- **Model:** Currently uses `gemini-2.0-flash-exp` (configurable via `GENERATIVE_MODEL` env var in server.js)
 - **Scripts:** `npm start` → `node server.js`
 
 ### Code Style
@@ -257,6 +257,11 @@ npm audit fix
 ## CI (example)
 
 ### GitHub Actions Workflows
+
+**Node.js Version Notes:**
+- `.nvmrc` specifies: 22.12.0 (recommended for local development)
+- `package.json` specifies: >=20.19.0 (minimum required version)
+- CI uses: 22.12.0 (matches .nvmrc for consistency)
 
 **Node CI - Build & Validate** (`.github/workflows/node-ci.yml`):
 - Triggers on push/PR to `main` branch
@@ -453,7 +458,7 @@ curl http://localhost:3001/api/models
 
 **Backend:**
 - `backend/server.js` - Main Express server
-  - Model selection (currently `gemini-1.5-flash`)
+  - Model selection (currently `gemini-2.0-flash-exp`, configurable via `GENERATIVE_MODEL` env var)
   - Gemini SDK initialization
   - API endpoint definitions
   - Error handling
@@ -675,15 +680,15 @@ node --version  # Should be 20.19.0+
 ### Change the AI model
 **File:** `backend/server.js`
 ```javascript
-// Find this line (around line 30)
-const model = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash" 
-});
+// Find this line (around line 307)
+const desiredModel = process.env.GENERATIVE_MODEL || "gemini-2.0-flash-exp";
 
-// Change to:
-const model = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-pro" 
-});
+// Option 1: Change default in code
+const desiredModel = process.env.GENERATIVE_MODEL || "gemini-1.5-pro";
+
+// Option 2: Set environment variable (preferred)
+// In backend/.env, add:
+// GENERATIVE_MODEL=gemini-1.5-pro
 ```
 
 ### Change backend URL in frontend
