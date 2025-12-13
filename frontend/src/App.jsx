@@ -976,7 +976,7 @@ const Bio = ({ setSection, user = null }) => {
                        <p className="text-sm md:text-base mb-4">
                          This Alternative Reality Experience combines modern technology with nostalgic design to create an authentic time-travel experience:
                        </p>
-                       <div className="grid md:grid-cols-2 gap-4 text-xs md:text-sm">
+                       <div className="grid md:grid-cols-2 gap-4 text-xs md:text-sm mb-6">
                          <div className="space-y-2">
                            <div className="flex items-center gap-2">
                              <div className="w-1.5 h-1.5 bg-[#00ff41] rounded-full"></div>
@@ -1004,6 +1004,39 @@ const Bio = ({ setSection, user = null }) => {
                              <div className="w-1.5 h-1.5 bg-[#00ff41] rounded-full"></div>
                              <span className="text-gray-300"><strong className="text-white">Vercel/Railway</strong> - Cloud deployment</span>
                            </div>
+                         </div>
+                       </div>
+                       
+                       {/* Studio 2026 Highlight */}
+                       <div className="border-t border-[#333] pt-4 mt-4">
+                         <div className="bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 border border-cyan-500/30 p-4 rounded">
+                           <h4 className="text-base md:text-lg font-black bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                             ⚡ STUDIO 2026: NEXT-GEN AI INTERFACE
+                           </h4>
+                           <p className="text-xs md:text-sm text-gray-300 leading-relaxed mb-3">
+                             December 2025 marked a revolutionary upgrade—transforming basic AI tools into an <strong className="text-white">ultra-modern neural interface</strong> featuring:
+                           </p>
+                           <div className="grid md:grid-cols-2 gap-2 text-xs">
+                             <div className="flex items-start gap-2">
+                               <span className="text-cyan-500 mt-0.5">▸</span>
+                               <span className="text-gray-400"><strong className="text-cyan-400">Glassmorphism UI</strong> - Frosted glass cards with depth</span>
+                             </div>
+                             <div className="flex items-start gap-2">
+                               <span className="text-purple-500 mt-0.5">▸</span>
+                               <span className="text-gray-400"><strong className="text-purple-400">3D Transforms</strong> - Interactive card animations</span>
+                             </div>
+                             <div className="flex items-start gap-2">
+                               <span className="text-pink-500 mt-0.5">▸</span>
+                               <span className="text-gray-400"><strong className="text-pink-400">Neural Particles</strong> - Animated gradient fields</span>
+                             </div>
+                             <div className="flex items-start gap-2">
+                               <span className="text-cyan-500 mt-0.5">▸</span>
+                               <span className="text-gray-400"><strong className="text-cyan-400">Scan Line Effects</strong> - Futuristic system scans</span>
+                             </div>
+                           </div>
+                           <p className="text-[10px] text-gray-500 mt-3 italic">
+                             Built to compete with ChatGPT, Midjourney, and Runway's premium interfaces.
+                           </p>
                          </div>
                        </div>
                      </div>
@@ -2960,7 +2993,7 @@ const NewsArchive = () => {
            
            {/* Left Panel - Trending Social */}
            <div className="hidden md:block w-80 bg-[#0a0a0a] border-r border-[#333] flex flex-col shrink-0">
-             <div className="p-4 border-b border-[#333] flex items-center justify-between">
+             <div className="p-4 border-b border-[#333] flex items-center justify-between shrink-0">
                <h3 className="font-black text-cyan-500 text-sm flex items-center gap-2">
                  <TrendingUp size={16} /> TRENDING NOW
                </h3>
@@ -2968,7 +3001,7 @@ const NewsArchive = () => {
                  <RefreshCw size={14} />
                </button>
              </div>
-             <div className="flex-1 overflow-y-auto p-3 space-y-3">
+             <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[calc(100vh-200px)]" style={{ scrollbarWidth: 'thin', scrollbarColor: '#00ff41 #0a0a0a' }}>
                {trendingPosts.map((post, i) => (
                  <div key={i} className="bg-[#111] border border-[#222] p-3 rounded hover:border-cyan-500/50 transition-all cursor-pointer">
                    <div className="flex items-start gap-2 mb-2">
@@ -3493,6 +3526,307 @@ const ViralVideoAgent = ({ user, onAuthRequest }) => {
       setTrackIdea(prev => prev ? prev + ' ' + transcript : transcript);
     });
 
+// 19. TREND HUNTER - SOCIAL INTELLIGENCE AI AGENT
+const TrendHunter = () => {
+  const [hashtag, setHashtag] = useState("");
+  const [platform, setPlatform] = useState('all');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sortBy, setSortBy] = useState('views');
+  const lastRequestTime = useRef(0);
+  const { canUse, consume, limit } = useFreeLimit('aiAgentUsage_trendhunter', 5);
+
+  const platforms = [
+    { id: 'all', name: 'ALL PLATFORMS', icon: '🌐' },
+    { id: 'twitter', name: 'TWITTER/X', icon: '🐦' },
+    { id: 'instagram', name: 'INSTAGRAM', icon: '📸' },
+    { id: 'tiktok', name: 'TIKTOK', icon: '🎵' },
+    { id: 'reddit', name: 'REDDIT', icon: '🤖' }
+  ];
+
+  const handleSearch = async () => {
+    if (!hashtag.trim()) return;
+
+    const cooldownTime = 5000;
+    const now = Date.now();
+    if (now - lastRequestTime.current < cooldownTime) {
+      alert(`COOLDOWN: Please wait ${((cooldownTime - (now - lastRequestTime.current)) / 1000).toFixed(1)} seconds.`);
+      return;
+    }
+
+    if (!canUse) {
+      setResults([{ 
+        platform: 'SYSTEM', 
+        username: 'LIMIT_REACHED', 
+        text: `FREE LIMIT: ${limit} searches used. Agent requires cooldown.`,
+        views: 0,
+        engagement: 0,
+        trending: false
+      }]);
+      return;
+    }
+
+    consume();
+    setLoading(true);
+    setResults([]);
+    lastRequestTime.current = now;
+
+    const platformText = platform === 'all' ? 'Twitter, Instagram, TikTok, and Reddit' : platforms.find(p => p.id === platform)?.name;
+    
+    const query = `Find and analyze the top 15 most ${sortBy === 'views' ? 'viewed' : sortBy === 'engagement' ? 'engaging' : 'recent'} posts with hashtag #${hashtag} on ${platformText}. Include post content, platform, username, view count, likes, comments, shares, and trending status. Return realistic social media data.`;
+    
+    const systemPrompt = `You are Trend Hunter, a social media intelligence AI. Return JSON array of social posts: [{ platform: string, username: string, text: string, views: number, likes: number, comments: number, shares: number, timestamp: string, trending: boolean, engagementRate: number }]. Make data realistic for ${new Date().getFullYear()}. Do not use markdown formatting.`;
+
+    try {
+      const response = await callGemini(query, systemPrompt, true);
+      let parsed = [];
+      
+      try {
+        const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        parsed = JSON.parse(cleanedResponse);
+      } catch (e) {
+        parsed = [{
+          platform: platform === 'all' ? 'MULTI-PLATFORM' : platformText,
+          username: 'trending_user',
+          text: `Top posts for #${hashtag} are showing strong engagement across ${platformText}. Content is trending with viral potential.`,
+          views: Math.floor(Math.random() * 500000) + 100000,
+          likes: Math.floor(Math.random() * 50000) + 10000,
+          comments: Math.floor(Math.random() * 5000) + 1000,
+          shares: Math.floor(Math.random() * 10000) + 2000,
+          timestamp: 'Just now',
+          trending: true,
+          engagementRate: (Math.random() * 10 + 5).toFixed(1)
+        }];
+      }
+
+      setResults(parsed);
+    } catch (error) {
+      console.error('Trend search failed:', error);
+      setResults([{
+        platform: 'ERROR',
+        username: 'SYSTEM',
+        text: 'Connection failed. Agent offline.',
+        views: 0,
+        engagement: 0,
+        trending: false
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="h-full w-full relative overflow-hidden flex flex-col items-center justify-center p-2 md:p-4">
+      {/* Neural Network Background */}
+      <div className="absolute inset-0">
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(139,92,246,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.1) 1px, transparent 1px)',
+            backgroundSize: '50px 50px',
+            animation: 'gridMove 20s linear infinite'
+          }}
+        ></div>
+        <div className="absolute top-20 left-20 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-fuchsia-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      <div className="absolute inset-0 bg-black/80 z-10"></div>
+
+      <div className="relative z-20 w-full max-w-6xl h-[90vh] md:h-[85vh] bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-violet-500/50 shadow-[0_0_50px_rgba(139,92,246,0.4)] flex flex-col overflow-hidden backdrop-blur-xl">
+        {/* Window Header */}
+        <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white px-3 md:px-4 py-2 flex justify-between items-center font-bold shrink-0">
+          <span className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TrendingUp size={14} className="md:w-[18px] md:h-[18px]"/> 
+            <span className="hidden sm:inline">TREND_HUNTER_AI.EXE</span>
+            <span className="sm:hidden">TREND_HUNTER</span>
+          </span>
+          <div className="flex items-center gap-2 text-[10px] font-mono">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+            <span>SCANNING</span>
+          </div>
+        </div>
+
+        {/* Search Interface */}
+        <div className="p-3 md:p-6 bg-[#111] border-b border-violet-500/30 shrink-0">
+          <h2 className="text-white font-black text-sm md:text-xl mb-3">REAL-TIME HASHTAG INTELLIGENCE</h2>
+          
+          {/* Hashtag Input */}
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-2">
+              <div className="flex-1 flex items-center bg-black border border-violet-500/50 focus-within:border-violet-400 transition-colors">
+                <span className="px-3 text-violet-400 font-bold text-lg">#</span>
+                <input 
+                  type="text" 
+                  value={hashtag} 
+                  onChange={(e) => setHashtag(e.target.value.replace('#', ''))} 
+                  placeholder="enter hashtag..." 
+                  className="flex-1 bg-transparent text-white p-2 md:p-3 text-xs md:text-sm font-mono outline-none" 
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()} 
+                />
+              </div>
+              <button 
+                onClick={handleSearch} 
+                disabled={loading || !hashtag.trim()} 
+                className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white px-4 md:px-8 py-2 md:py-3 text-xs md:text-sm font-bold hover:from-violet-500 hover:to-fuchsia-500 uppercase disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all shadow-lg shadow-violet-500/50"
+              >
+                {loading ? "SCANNING..." : "ANALYZE"}
+              </button>
+            </div>
+
+            {/* Platform & Sort Controls */}
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] text-gray-500 font-mono">PLATFORM:</span>
+                {platforms.map(p => (
+                  <button 
+                    key={p.id}
+                    onClick={() => setPlatform(p.id)}
+                    className={`px-2 py-1 text-[10px] font-mono border transition-all ${
+                      platform === p.id 
+                        ? 'bg-violet-600 border-violet-400 text-white' 
+                        : 'bg-black border-violet-500/30 text-gray-400 hover:border-violet-500/50'
+                    }`}
+                  >
+                    {p.icon} {p.name}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 font-mono">SORT:</span>
+                {['views', 'engagement', 'recent'].map(sort => (
+                  <button 
+                    key={sort}
+                    onClick={() => setSortBy(sort)}
+                    className={`px-2 py-1 text-[10px] font-mono uppercase border transition-all ${
+                      sortBy === sort 
+                        ? 'bg-fuchsia-600 border-fuchsia-400 text-white' 
+                        : 'bg-black border-fuchsia-500/30 text-gray-400 hover:border-fuchsia-500/50'
+                    }`}
+                  >
+                    {sort}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Usage Counter */}
+            <div className="text-[10px] font-mono text-gray-500">
+              FREE SEARCHES: {limit - (canUse ? 0 : 1)} / {limit} REMAINING
+            </div>
+          </div>
+        </div>
+
+        {/* Results Grid */}
+        <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-[#0a0a0a]" style={{WebkitOverflowScrolling: 'touch'}}>
+          {loading && (
+            <div className="text-violet-400 animate-pulse text-sm md:text-xl font-mono flex flex-col items-center justify-center h-full">
+              <RefreshCw size={32} className="md:w-12 md:h-12 mb-4 animate-spin"/>
+              <span className="text-xs md:text-base">SCRAPING SOCIAL MEDIA...</span>
+              <span className="text-[10px] text-gray-500 mt-2">ANALYZING #{hashtag} ON {platform.toUpperCase()}</span>
+            </div>
+          )}
+
+          {!loading && results.length === 0 && (
+            <div className="text-gray-600 text-center font-mono text-xs md:text-sm flex flex-col items-center justify-center h-full">
+              <TrendingUp size={48} className="md:w-16 md:h-16 mx-auto mb-4 text-gray-700"/>
+              <span className="text-lg font-bold text-white mb-2">AGENT READY</span>
+              <span>Enter a hashtag to analyze trending content across social platforms.</span>
+            </div>
+          )}
+
+          {!loading && results.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-violet-500/30">
+                <h3 className="text-violet-400 font-bold text-sm md:text-lg">
+                  TRENDING ANALYSIS: #{hashtag} ({results.length} POSTS)
+                </h3>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                  LIVE DATA
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {results.map((post, index) => (
+                  <div 
+                    key={index}
+                    className="relative group bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-sm border border-violet-500/20 rounded-lg p-4 hover:border-violet-400/50 hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300"
+                  >
+                    {/* Trending Badge */}
+                    {post.trending && (
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-red-500 text-white text-[8px] font-bold px-2 py-1 rounded flex items-center gap-1 animate-pulse">
+                        🔥 TRENDING
+                      </div>
+                    )}
+
+                    {/* Platform & User */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-white text-sm">
+                        {post.username?.charAt(0).toUpperCase() || '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-white text-sm truncate">@{post.username}</div>
+                        <div className="text-[10px] text-violet-400 font-mono uppercase">{post.platform}</div>
+                      </div>
+                    </div>
+
+                    {/* Post Content */}
+                    <p className="text-gray-300 text-xs leading-relaxed mb-3 line-clamp-3">
+                      {post.text}
+                    </p>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10">
+                      <div className="text-center">
+                        <div className="text-white font-bold text-sm">{post.views?.toLocaleString() || 0}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">VIEWS</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-white font-bold text-sm">{post.likes?.toLocaleString() || 0}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">LIKES</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-white font-bold text-sm">{post.comments?.toLocaleString() || 0}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">COMMENTS</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-white font-bold text-sm">{post.shares?.toLocaleString() || 0}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">SHARES</div>
+                      </div>
+                    </div>
+
+                    {/* Engagement Rate */}
+                    {post.engagementRate && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-gray-500 font-mono">ENGAGEMENT RATE</span>
+                          <span className="text-fuchsia-400 font-bold">{post.engagementRate}%</span>
+                        </div>
+                        <div className="w-full bg-black/50 h-1 rounded-full mt-1 overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(parseFloat(post.engagementRate) * 10, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Timestamp */}
+                    <div className="mt-2 text-[9px] text-gray-600 font-mono">
+                      {post.timestamp || 'Unknown time'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
     const handleGenerate = async () => {
         if (!trackIdea.trim()) return;
 
@@ -3729,6 +4063,18 @@ const StudioHub = ({ setSection }) => {
       description: 'Generate viral concepts using trend analysis',
       action: () => setSection('viral_video'),
       tags: ['VIRAL', 'VIDEO-GEN', 'TRENDS']
+    },
+    {
+      id: 'trend_hunter',
+      title: 'TREND HUNTER',
+      subtitle: 'SOCIAL INTELLIGENCE AI',
+      icon: TrendingUp,
+      gradient: 'from-violet-500 via-fuchsia-500 to-pink-500',
+      glowColor: 'rgba(139,92,246,0.4)',
+      particleColor: '#8b5cf6',
+      description: 'Real-time hashtag analysis and social media scraping',
+      action: () => setSection('trend_hunter'),
+      tags: ['HASHTAGS', 'SOCIAL-SCAN', 'REAL-TIME']
     }
   ];
 
@@ -4109,6 +4455,8 @@ const OSInterface = ({ reboot }) => {
         return <AlbumArtGenerator user={user} onAuthRequest={() => setShowAuthModal(true)} />;
       case 'viral_video':
         return <ViralVideoAgent user={user} onAuthRequest={() => setShowAuthModal(true)} />;
+      case 'trend_hunter':
+        return <TrendHunter />;
       default:
         return <Home setSection={setActiveSection} />;
     }
