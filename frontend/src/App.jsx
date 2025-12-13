@@ -789,14 +789,14 @@ const Bio = ({ setSection, user = null }) => {
                    {/* Hero Section */}
                    <div className="text-center space-y-6 mb-12">
                      <div className="inline-block">
-                       <div className="text-[#00ff41]/70 text-xs font-mono tracking-[0.6em] uppercase mb-4 animate-pulse">
+                       <div className="text-[#00ff41]/70 text-xs font-mono tracking-[0.2em] md:tracking-[0.6em] uppercase mb-4 animate-pulse">
                          Alternative Reality Experience
                        </div>
                        <h1 className="text-4xl md:text-6xl font-thin text-[#00ff41] tracking-tighter drop-shadow-[0_0_10px_rgba(0,255,65,0.8)] mb-6">
                          WHIP MONTEZ
                        </h1>
                        <div className="h-[2px] w-32 bg-[#00ff41] shadow-[0_0_20px_#00ff41] mx-auto mb-4"></div>
-                       <p className="text-white/60 text-sm tracking-[0.4em] uppercase">
+                       <p className="text-white/60 text-sm tracking-[0.2em] md:tracking-[0.4em] uppercase">
                          The Restored Experience
                        </p>
                      </div>
@@ -4119,22 +4119,22 @@ const LandingPage = ({ onEnter }) => {
         <div className={`text-center relative transition-all duration-1500 ease-in-out transform ${isEntering ? 'scale-50 translate-y-4' : 'scale-100'}`}>
           
           {/* New Disclaimer Text - Stays at top */}
-          <p className={`text-[#00ff41]/70 text-[10px] md:text-xs font-light tracking-[0.6em] uppercase mb-6 animate-pulse select-none font-sans transition-opacity duration-500 ${isEntering ? 'opacity-0' : 'opacity-100'}`}>
+          <p className={`text-[#00ff41]/70 text-[10px] md:text-xs font-light tracking-[0.2em] md:tracking-[0.6em] uppercase mb-6 animate-pulse select-none font-sans transition-opacity duration-500 ${isEntering ? 'opacity-0' : 'opacity-100'}`}>
             Alternative Reality Experience
           </p>
 
           {/* Neon Green Thin Solid Font - Single Line with Hover Effect */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-thin text-[#00ff41] tracking-tighter drop-shadow-[0_0_10px_rgba(0,255,65,0.8)] select-none scale-y-125 transform mb-8 font-sans whitespace-nowrap transition-all duration-500 cursor-default hover:drop-shadow-[0_0_35px_#00ff41] hover:text-[#e0ffe0]">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-thin text-[#00ff41] tracking-tighter drop-shadow-[0_0_10px_rgba(0,255,65,0.8)] select-none scale-y-125 transform mb-8 font-sans md:whitespace-nowrap transition-all duration-500 cursor-default hover:drop-shadow-[0_0_35px_#00ff41] hover:text-[#e0ffe0]">
             WHIP MONTEZ
           </h1>
 
           {/* Tagline Moved Back Below */}
-          <p className="text-white/40 text-xs font-light tracking-[0.8em] mt-4 uppercase ml-2 transition-all duration-1000">
+          <p className="text-white/40 text-xs font-light tracking-[0.3em] md:tracking-[0.8em] mt-4 uppercase ml-0 md:ml-2 transition-all duration-1000">
             The Restored Experience
           </p>
 
           {/* The Expanding Line Animation */}
-          <div className={`h-[2px] bg-[#00ff41] shadow-[0_0_20px_#00ff41] mx-auto mt-8 transition-all duration-1500 ease-out ${isEntering ? 'w-[120%] opacity-100' : 'w-0 opacity-0'}`}></div>
+          <div className={`h-[2px] bg-[#00ff41] shadow-[0_0_20px_#00ff41] mx-auto mt-8 transition-all duration-1500 ease-out max-w-full ${isEntering ? 'w-full opacity-100' : 'w-0 opacity-0'}`}></div>
         </div>
 
         {/* Quick Access Widgets */}
@@ -4183,11 +4183,11 @@ const LandingPage = ({ onEnter }) => {
         </div>
       </div>
       
-      <div className={`absolute bottom-8 w-full px-8 flex flex-col md:flex-row justify-between items-center text-[#00ff41]/30 font-mono text-[10px] tracking-widest uppercase gap-2 transition-opacity duration-1000 ${isEntering ? 'opacity-0' : 'opacity-100'}`}>
-        <span>Quick_Access_Available // Press Power to Boot Full System</span>
+      <div className={`absolute bottom-8 w-full px-4 md:px-8 flex flex-col md:flex-row justify-between items-center text-[#00ff41]/30 font-mono text-[10px] tracking-widest uppercase gap-2 transition-opacity duration-1000 ${isEntering ? 'opacity-0' : 'opacity-100'}`}>
+        <span className="text-center md:text-left">Quick_Access_Available // Press Power to Boot Full System</span>
         <button 
           onClick={() => setShowDisclaimer(true)}
-          className="hover:text-[#00ff41] transition-colors border-b border-transparent hover:border-[#00ff41] pb-[1px] cursor-pointer"
+          className="hover:text-[#00ff41] transition-colors border-b border-transparent hover:border-[#00ff41] pb-[1px] cursor-pointer whitespace-nowrap"
         >
           [ Notice: Disclaimer ]
         </button>
