@@ -4813,7 +4813,7 @@ const LandingPage = ({ onEnter }) => {
   ];
 
   return (
-    <div className="h-screen w-full bg-black flex flex-col items-center justify-center relative overflow-hidden z-[110] font-sans">
+    <div className="h-screen w-full bg-black flex flex-col items-center justify-center relative overflow-hidden z-[150] font-sans touch-auto">
       {/* Subtle modern mesh bg */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#051a05] via-black to-black opacity-80"></div>
       
@@ -4822,8 +4822,9 @@ const LandingPage = ({ onEnter }) => {
         <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]">
           <div className="border border-[#00ff41] bg-black p-6 max-w-md w-full shadow-[0_0_30px_rgba(0,255,65,0.1)] relative">
             <button 
-              onClick={() => setShowDisclaimer(false)} 
-              className="absolute top-3 right-3 text-[#00ff41]/50 hover:text-[#00ff41] transition-colors"
+              onClick={() => setShowDisclaimer(false)}
+              onTouchEnd={(e) => { e.preventDefault(); setShowDisclaimer(false); }}
+              className="absolute top-3 right-3 text-[#00ff41]/50 hover:text-[#00ff41] transition-colors touch-manipulation"
             >
               <X size={16} />
             </button>
@@ -4870,7 +4871,8 @@ const LandingPage = ({ onEnter }) => {
             <div 
               key={widget.id}
               onClick={handleEnterClick}
-              className="group relative bg-black/50 backdrop-blur-sm border border-[#333] hover:border-[#00ff41]/50 p-4 md:p-6 flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 hover:bg-black/70 hover:scale-105 active:scale-95"
+              onTouchEnd={(e) => { e.preventDefault(); handleEnterClick(); }}
+              className="group relative bg-black/50 backdrop-blur-sm border border-[#333] hover:border-[#00ff41]/50 p-4 md:p-6 flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 hover:bg-black/70 hover:scale-105 active:scale-95 touch-manipulation"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className={`p-3 rounded-full bg-gradient-to-br from-[#111] to-black shadow-[inset_0_2px_5px_rgba(0,0,0,1)] group-hover:shadow-[0_0_20px_rgba(0,255,65,0.2)] transition-all duration-300`}>
@@ -4888,7 +4890,7 @@ const LandingPage = ({ onEnter }) => {
           ))}
         </div>
 
-        <div className={`relative group cursor-pointer transition-all duration-700 ${isEntering ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}`} onClick={handleEnterClick}>
+        <div className={`relative group cursor-pointer transition-all duration-700 touch-manipulation ${isEntering ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}`} onClick={handleEnterClick} onTouchEnd={(e) => { e.preventDefault(); handleEnterClick(); }}>
           {/* Outer Ring Animation */}
           <div className="absolute inset-[-10px] border border-dashed border-[#00ff41]/20 rounded-full w-[calc(100%+20px)] h-[calc(100%+20px)] opacity-0 group-hover:opacity-100 animate-[spin_8s_linear_infinite] pointer-events-none transition-opacity duration-700"></div>
           
@@ -4914,7 +4916,8 @@ const LandingPage = ({ onEnter }) => {
         <span className="text-center md:text-left">Quick_Access_Available // Press Power to Boot Full System</span>
         <button 
           onClick={() => setShowDisclaimer(true)}
-          className="hover:text-[#00ff41] transition-colors border-b border-transparent hover:border-[#00ff41] pb-[1px] cursor-pointer whitespace-nowrap"
+          onTouchEnd={(e) => { e.preventDefault(); setShowDisclaimer(true); }}
+          className="hover:text-[#00ff41] transition-colors border-b border-transparent hover:border-[#00ff41] pb-[1px] cursor-pointer whitespace-nowrap touch-manipulation"
         >
           [ Notice: Disclaimer ]
         </button>
@@ -4956,7 +4959,7 @@ export default function App() {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
       `}</style>
-      <div className="absolute inset-0 z-[100] pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 z-[100] pointer-events-none overflow-hidden touch-none">
         <div className="crt-overlay absolute inset-0"></div>
         <div className="scanline"></div>
         <div className="absolute inset-0 bg-black opacity-10 pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
