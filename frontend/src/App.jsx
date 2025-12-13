@@ -563,11 +563,13 @@ const Home = ({ setSection }) => {
 };
 
 // 4. BIO SECTION
-const Bio = ({ setSection, user }) => {
+const Bio = ({ setSection, user = null }) => {
   const [viewMode, setViewMode] = useState('bio'); // 'bio' or 'memory'
   const [photos, setPhotos] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  console.log('Bio component - user:', user); // Debug log
 
   // Load photos from Firebase on mount
   useEffect(() => {
@@ -889,9 +891,7 @@ const Bio = ({ setSection, user }) => {
                        📸 No photos uploaded yet
                      </p>
                      <p className="text-gray-500 text-xs font-mono">
-                       {user && !user.isAnonymous 
-                         ? 'Use the upload panel above to add memories from the Livewire era' 
-                         : 'Check back soon for exclusive behind-the-scenes content'}
+                       Check back soon for exclusive behind-the-scenes content
                      </p>
                    </div>
                  )}
