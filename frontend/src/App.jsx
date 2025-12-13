@@ -563,7 +563,7 @@ const Home = ({ setSection }) => {
 };
 
 // 4. BIO SECTION
-const Bio = ({ setSection }) => {
+const Bio = ({ setSection, user }) => {
   const [viewMode, setViewMode] = useState('bio'); // 'bio' or 'memory'
   const [photos, setPhotos] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
@@ -3397,7 +3397,7 @@ const OSInterface = ({ reboot }) => {
       case 'home':
         return <Home setSection={setActiveSection} />;
       case 'bio':
-        return <Bio setSection={setActiveSection} />;
+        return <Bio setSection={setActiveSection} user={user} />;
       case 'music':
         return <MusicPlayer />;
       case 'tour':
