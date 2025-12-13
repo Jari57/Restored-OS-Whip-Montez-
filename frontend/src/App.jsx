@@ -4594,12 +4594,19 @@ const AuthModal = ({ onClose, onAuth }) => {
 };
 
 // 17. MAIN OS SHELL
-const OSInterface = ({ reboot }) => {
-  const [activeSection, setActiveSection] = useState('home');
+const OSInterface = ({ reboot, initialSection }) => {
+  const [activeSection, setActiveSection] = useState(initialSection || 'home');
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Update active section when initialSection changes
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [initialSection]);
 
   useEffect(() => {
     // 1. Start System Clock
@@ -4806,7 +4813,7 @@ const OSInterface = ({ reboot }) => {
 };
 
 // Landing Page Component
-const LandingPage = ({ onEnter }) => {
+const LandingPage = ({ onEnter, onQuickAccess }) => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [isEntering, setIsEntering] = useState(false);
 
@@ -4815,6 +4822,13 @@ const LandingPage = ({ onEnter }) => {
     setTimeout(() => {
       onEnter();
     }, 2500); 
+  };
+
+  const handleQuickAccess = (sectionId) => {
+    setIsEntering(true);
+    setTimeout(() => {
+      onQuickAccess(sectionId);
+    }, 800); // Shorter delay for quick access
   };
 
   const quickAccessWidgets = [
@@ -4882,8 +4896,8 @@ const LandingPage = ({ onEnter }) => {
           {quickAccessWidgets.map((widget, i) => (
             <div 
               key={widget.id}
-              onClick={handleEnterClick}
-              onTouchEnd={(e) => { e.preventDefault(); handleEnterClick(); }}
+              onClick={() => handleQuickAccess(widget.id)}
+              onTouchEnd={(e) => { e.preventDefault(); handleQuickAccess(widget.id); }}
               className="group relative bg-black/50 backdrop-blur-sm border border-[#333] hover:border-[#00ff41]/50 p-4 md:p-6 flex flex-col items-center gap-3 cursor-pointer transition-all duration-300 hover:bg-black/70 hover:scale-105 active:scale-95 touch-manipulation"
               style={{ animationDelay: `${i * 100}ms` }}
             >
@@ -4940,6 +4954,12 @@ const LandingPage = ({ onEnter }) => {
 
 export default function App() {
   const [appState, setAppState] = useState('landing'); // 'landing' | 'booting' | 'ready'
+  const [targetSection, setTargetSection] = useState(null); // Track direct navigation target
+
+  const handleDirectNavigation = (section) => {
+    setTargetSection(section);
+    setAppState('ready'); // Skip boot sequence
+  };
 
   return (
     <div className="relative w-full h-screen bg-black text-white selection:bg-[#00ff41] selection:text-black font-sans">
@@ -4951,8 +4971,8 @@ export default function App() {
         ::-webkit-scrollbar-track { background: #050505; border-left: 1px solid #333; }
         ::-webkit-scrollbar-thumb { background: #1a1a1a; border: 1px solid #333; border-radius: 0; }
         ::-webkit-scrollbar-thumb:hover { background: #00ff41; border: 1px solid #00ff41; box-shadow: 0 0 10px #00ff41; }
-        .crt-overlay { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%; pointer-events: none; z-index: 60; }
-        .scanline { width: 100%; height: 100px; z-index: 55; background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0, 255, 65, 0.1) 50%, rgba(0,0,0,0) 100%); opacity: 0.1; position: absolute; bottom: 100%; animation: scanline 10s linear infinite; pointer-events: none; }
+        .crt-overlay { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%; pointer-events-none; z-index: 60; }
+        .scanline { width: 100%; height: 100px; z-index: 55; background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0, 255, 65, 0.1) 50%, rgba(0,0,0,0) 100%); opacity: 0.1; position: absolute; bottom: 100%; animation: scanline 10s linear infinite; pointer-events-none; }
         @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100px; } }
         .chrome-text { font-family: 'Anton', sans-serif; background: linear-gradient(to bottom, var(--chrome-3) 0%, var(--chrome-1) 50%, var(--chrome-2) 51%, var(--chrome-3) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0px 2px 0px rgba(0,0,0,0.5); -webkit-text-stroke: 1px rgba(255,255,255,0.4); letter-spacing: -0.02em; }
         .ken-burns-anim { animation: kenBurns 20s infinite alternate ease-in-out; }
@@ -4978,9 +4998,9 @@ export default function App() {
       </div>
       
       {/* Three-stage render: Landing -> Boot -> OS */}
-      {appState === 'landing' && <LandingPage onEnter={() => setAppState('booting')} />}
+      {appState === 'landing' && <LandingPage onEnter={() => setAppState('booting')} onQuickAccess={handleDirectNavigation} />}
       {appState === 'booting' && <BootSequence onComplete={() => setAppState('ready')} />}
-      {appState === 'ready' && <OSInterface reboot={() => setAppState('landing')} />}
+      {appState === 'ready' && <OSInterface reboot={() => setAppState('landing')} initialSection={targetSection} />}
     </div>
   );
 }
