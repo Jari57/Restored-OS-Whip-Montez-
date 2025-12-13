@@ -304,10 +304,21 @@ app.post('/api/generate', generationLimiter, async (req, res) => {
         throw new Error("Server missing API Key. Check backend/.env");
     }
 
-    const desiredModel = process.env.GENERATIVE_MODEL || "gemini-2.0-flash-exp";
+    // Use Gemini Pro for lengthy, precise responses (optimized for ARE experience)
+    const desiredModel = process.env.GENERATIVE_MODEL || "gemini-1.5-pro";
+    
+    // Generation configuration for high-quality, detailed responses
+    const generationConfig = {
+      temperature: 0.7,        // Balanced creativity and coherence
+      topP: 0.95,             // Diverse but focused outputs
+      topK: 40,               // Limit token selection for quality
+      maxOutputTokens: 2048,  // Allow lengthy, detailed responses
+    };
+    
     const model = genAI.getGenerativeModel({ 
       model: desiredModel,
-      systemInstruction: systemInstruction
+      systemInstruction: systemInstruction,
+      generationConfig: generationConfig
     });
 
     const startTime = Date.now();
