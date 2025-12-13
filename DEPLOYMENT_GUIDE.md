@@ -36,7 +36,7 @@ git push origin main
 
 ---
 
-## 🖥️ Monitoring Dashboard
+## 🖥️ Uplink Central (Monitoring Dashboard)
 
 ### Access Dashboard
 - **Local Dev**: http://localhost:3001/dashboard
@@ -337,4 +337,4 @@ git push --force origin main
 
 ---
 
-**Dashboard Online**: Monitor your full stack in real-time! 🚀
+**Uplink Central Online**: Your command center for real-time system monitoring! 🚀
