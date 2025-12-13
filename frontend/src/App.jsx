@@ -255,6 +255,43 @@ const useVoiceInput = (onResult) => {
   return { isListening, isSupported, startListening, stopListening };
 };
 
+// Text-to-Speech Hook
+const useSpeechSynthesis = () => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+
+  useEffect(() => {
+    setIsSupported('speechSynthesis' in window);
+  }, []);
+
+  const speak = (text) => {
+    if (!isSupported || !text) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stop = () => {
+    if (isSupported) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
+  return { speak, stop, isSpeaking, isSupported };
+};
+
 // Helper function to save generations to Firestore
 const saveToLibrary = async (user, type, content, metadata = {}) => {
   if (!user || user.isAnonymous) {
@@ -2425,11 +2462,13 @@ const Ghostwriter = () => {
   const [prompt, setPrompt] = useState("");
   const [lyrics, setLyrics] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const lastRequestTime = useRef(0);
   const { usage, limit, canUse, consume } = useFreeLimit('aiAgentUsage_ghostwriter', 3);
   const { isListening, isSupported, startListening } = useVoiceInput((transcript) => {
     setPrompt(prev => prev ? prev + ' ' + transcript : transcript);
   });
+  const { speak, stop, isSpeaking, isSupported: speechSupported } = useSpeechSynthesis();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -2464,9 +2503,18 @@ const Ghostwriter = () => {
       <div className="relative z-20 w-full max-w-3xl border border-cyan-600 bg-[#050505]/90 p-1 shadow-[0_0_30px_rgba(0,180,255,0.4)] my-6">
         <div className="bg-cyan-600 text-black px-2 py-1 font-bold flex justify-between items-center mb-2">
           <span>LYRIC_RECOVERY_TOOL.EXE</span>
-          <button onClick={() => window.history.back()} className="w-5 h-5 bg-black hover:bg-red-600 flex items-center justify-center transition-colors cursor-pointer" aria-label="Close">
-            <X size={14} className="text-white"/>
-          </button>
+          <div className="flex gap-1">
+            <button 
+              onClick={() => setShowInfo(true)}
+              className="w-5 h-5 md:w-6 md:h-6 bg-black hover:bg-cyan-800 transition-colors flex items-center justify-center"
+              title="Info"
+            >
+              <Info size={14} className="md:w-4 md:h-4 text-cyan-400"/>
+            </button>
+            <button onClick={() => window.history.back()} className="w-5 h-5 bg-black hover:bg-red-600 flex items-center justify-center transition-colors cursor-pointer" aria-label="Close">
+              <X size={14} className="text-white"/>
+            </button>
+          </div>
         </div>
         <div className="p-4 flex flex-col gap-4">
           <div className="text-cyan-400 font-mono text-sm mb-2">{'>'} SYSTEM ALERT: CORRUPTED LYRIC FILES DETECTED.<br/>{'>'} ENTER KEYWORDS TO ATTEMPT DATA RECOVERY...</div>
@@ -2499,11 +2547,75 @@ const Ghostwriter = () => {
           </div>
           <div className="min-h-[200px] border border-cyan-800 bg-[#000000] p-4 font-mono text-sm md:text-base leading-relaxed overflow-y-auto max-h-[400px]">
             {loading && <div className="text-cyan-400 animate-pulse">{'>'} SCANNING SECTORS...<br/>{'>'} DECRYPTING FLOW...<br/>{'>'} ASSEMBLING BARS...</div>}
-            {!loading && lyrics && <div className="text-white whitespace-pre-line typing-cursor">{lyrics}</div>}
+            {!loading && lyrics && (
+              <div className="space-y-2">
+                <div className="text-white whitespace-pre-line typing-cursor">{lyrics}</div>
+                {speechSupported && (
+                  <div className="flex justify-end pt-2 border-t border-cyan-900">
+                    <button 
+                      onClick={() => isSpeaking ? stop() : speak(lyrics)}
+                      className={`px-3 py-1 text-xs font-mono ${isSpeaking ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-cyan-600 hover:bg-cyan-700'} text-white transition-colors flex items-center gap-2`}
+                    >
+                      <Volume2 size={12}/>
+                      {isSpeaking ? 'STOP' : 'SPEAK'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {!loading && !lyrics && <div className="text-gray-600 italic">// WAITING FOR INPUT //</div>}
           </div>
         </div>
       </div>
+
+      {/* Info Modal */}
+      {showInfo && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/90" onClick={() => setShowInfo(false)}>
+          <div className="bg-[#111] border-2 border-cyan-600 p-6 max-w-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} style={{WebkitOverflowScrolling: 'touch'}}>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-cyan-400 font-bold text-xl font-mono">GHOSTWRITER.EXE - SYSTEM INFO</h3>
+              <button onClick={() => setShowInfo(false)} className="text-cyan-400 hover:text-white">
+                <X size={20}/>
+              </button>
+            </div>
+            <div className="space-y-4 text-cyan-100 text-sm leading-relaxed">
+              <div>
+                <h4 className="text-cyan-400 font-bold mb-2">TOOL DESCRIPTION:</h4>
+                <p>AI-powered lyric generation engine designed to help you overcome writer's block and discover new creative directions. Generate hooks, verses, choruses, or complete song concepts.</p>
+              </div>
+              <div>
+                <h4 className="text-cyan-400 font-bold mb-2">FEATURES:</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Voice-to-text input (click mic icon)</li>
+                  <li>Text-to-speech output (click speak button)</li>
+                  <li>Free tier: 3 generations per session</li>
+                  <li>3-second cooldown between requests</li>
+                  <li>Real-time AI generation powered by Gemini</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-cyan-400 font-bold mb-2">HOW TO USE:</h4>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Enter your creative prompt or theme</li>
+                  <li>Click INITIATE to generate lyrics</li>
+                  <li>Use the microphone for voice input</li>
+                  <li>Click SPEAK to hear your lyrics read aloud</li>
+                  <li>Copy and refine the output in your DAW</li>
+                </ol>
+              </div>
+              <div>
+                <h4 className="text-cyan-400 font-bold mb-2">PRO TIPS:</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Be specific about mood, style, or topic</li>
+                  <li>Mention artists or genres for style matching</li>
+                  <li>Request specific structures (hook, verse, bridge)</li>
+                  <li>Use voice input for natural flow</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
