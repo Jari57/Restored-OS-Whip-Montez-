@@ -7,7 +7,7 @@ import {
   Hash, Grid, Headphones, Activity, Zap, Wallet, Power, Sliders, Briefcase, 
   RefreshCw, ToggleLeft, ToggleRight, Filter, Plus, Trash2, Edit2, Upload,
   Camera, TrendingUp, Users, Image as ImageIcon, Link as LinkIcon, Loader2,
-  Info, Volume2
+  Info, Volume2, Home as HomeIcon, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -2466,8 +2466,81 @@ const StyleArchive = () => {
   );
 };
 
+// Agent Navigator Component - allows switching between AI agents
+const AgentNavigator = ({ currentAgent, setSection }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const agents = [
+    { id: 'ghostwriter', name: 'Ghostwriter', icon: Sparkles, color: 'cyan' },
+    { id: 'chat', name: 'Sidekick', icon: MessageSquare, color: 'pink' },
+    { id: 'battle', name: 'Battle', icon: Flame, color: 'red' },
+    { id: 'ar_suite', name: 'AR Suite', icon: Zap, color: 'blue' },
+    { id: 'crates', name: 'Crates', icon: Disc, color: 'yellow' },
+    { id: 'album_art', name: 'Art Gen', icon: ImageIcon, color: 'pink' },
+    { id: 'viral_video', name: 'Viral', icon: Video, color: 'cyan' },
+    { id: 'trend_hunter', name: 'Trends', icon: Hash, color: 'purple' }
+  ];
+
+  const currentAgentData = agents.find(a => a.id === currentAgent);
+
+  return (
+    <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="relative">
+        {/* Current Agent Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-black/90 via-gray-900/90 to-black/90 backdrop-blur-xl border border-white/20 rounded-full shadow-2xl shadow-black/50 hover:scale-105 transition-all duration-300"
+        >
+          {currentAgentData && (
+            <>
+              <currentAgentData.icon size={18} className={`text-${currentAgentData.color}-400`} />
+              <span className="text-white font-mono text-sm font-bold tracking-wider">{currentAgentData.name}</span>
+            </>
+          )}
+          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/20">
+            {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+          </div>
+        </button>
+
+        {/* Expanded Agent Menu */}
+        {isExpanded && (
+          <div className="absolute top-full mt-2 left-0 right-0 bg-gradient-to-br from-black/95 via-gray-900/95 to-black/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-black/50 p-2 min-w-[300px] animate-fade-in">
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              {agents.filter(a => a.id !== currentAgent).map((agent) => (
+                <button
+                  key={agent.id}
+                  onClick={() => {
+                    setSection(agent.id);
+                    setIsExpanded(false);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-white/5 to-white/[0.02] border border-white/10 rounded-xl hover:border-${agent.color}-400/50 hover:bg-white/10 transition-all duration-300 group`}
+                >
+                  <agent.icon size={16} className={`text-${agent.color}-400 group-hover:scale-110 transition-transform`} />
+                  <span className="text-white font-mono text-xs font-medium">{agent.name}</span>
+                </button>
+              ))}
+            </div>
+            
+            {/* Close Studio Button */}
+            <button
+              onClick={() => {
+                setSection('home');
+                setIsExpanded(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500/20 to-red-600/20 border border-red-500/30 rounded-xl hover:border-red-400/50 hover:bg-red-500/30 transition-all duration-300 mt-2"
+            >
+              <HomeIcon size={16} className="text-red-400" />
+              <span className="text-red-400 font-mono text-xs font-bold uppercase tracking-wider">Close Studio → Home</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // 7. GHOSTWRITER (Lyric Recovery)
-const Ghostwriter = () => {
+const Ghostwriter = ({ setSection }) => {
   const [prompt, setPrompt] = useState("");
   const [lyrics, setLyrics] = useState("");
   const [loading, setLoading] = useState(false);
@@ -2509,6 +2582,10 @@ const Ghostwriter = () => {
     <div className="h-full w-full relative p-6 flex flex-col items-center justify-center overflow-y-auto" style={{WebkitOverflowScrolling: 'touch'}}>
       <BackgroundCarousel images={[]} />
       <div className="absolute inset-0 bg-black/80 z-10 pointer-events-none"></div>
+      
+      {/* Agent Navigator */}
+      {setSection && <AgentNavigator currentAgent="ghostwriter" setSection={setSection} />}
+      
       <div className="relative z-20 w-full max-w-3xl border border-cyan-600 bg-[#050505]/90 p-1 shadow-[0_0_30px_rgba(0,180,255,0.4)] my-6">
         <div className="bg-cyan-600 text-black px-2 py-1 font-bold flex justify-between items-center mb-2">
           <span>LYRIC_RECOVERY_TOOL.EXE</span>
@@ -4244,7 +4321,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'GHOSTWRITER.EXE',
       icon: Sparkles,
       gradient: 'from-cyan-400 to-cyan-600',
-      description: 'AI-powered lyric generation • Voice input • Text-to-speech',
+      description: 'Unlock forgotten verses and craft new bars with cutting-edge AI',
+      features: ['Voice-to-text capture', 'Real-time lyric generation', 'Multi-voice playback', 'Hip-hop style adaptation'],
+      tagline: 'Your AI pen game never sleeps',
       action: () => setSection('ghostwriter')
     },
     {
@@ -4253,7 +4332,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'SIDEKICK.EXE',
       icon: MessageSquare,
       gradient: 'from-pink-400 to-pink-600',
-      description: 'Conversational AI assistant • Creative collaboration',
+      description: 'Your creative partner for brainstorming, feedback, and inspiration',
+      features: ['Natural conversation flow', 'Music industry insights', 'Creative collaboration', '24/7 availability'],
+      tagline: 'Ideas that never stop flowing',
       action: () => setSection('chat')
     },
     {
@@ -4262,7 +4343,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'BATTLE.EXE',
       icon: Flame,
       gradient: 'from-red-400 to-red-600',
-      description: 'Battle rap simulator • Real-time AI disses • NYC slang',
+      description: 'Train your battle rap skills against AI opponents with street-level bars',
+      features: ['Real-time diss generation', 'NYC slang authentic', 'Battle rap training', 'Freestyle practice'],
+      tagline: 'Sharpen your battle edge',
       action: () => setSection('battle')
     },
     {
@@ -4271,7 +4354,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'AR_SUITE.EXE',
       icon: Zap,
       gradient: 'from-blue-400 to-blue-600',
-      description: 'Augmented reality concepts • Immersive experiences',
+      description: 'Design immersive augmented reality experiences for your brand',
+      features: ['AR concept generation', 'Interactive experiences', 'Fan engagement tools', 'Virtual performances'],
+      tagline: 'Reality meets imagination',
       action: () => setSection('ar_suite')
     },
     {
@@ -4280,7 +4365,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'SAMPLES.EXE',
       icon: Disc,
       gradient: 'from-yellow-400 to-yellow-600',
-      description: 'Sample discovery • Production inspiration • BPM/Key info',
+      description: 'Discover hidden gems and sample inspiration from the depths of music history',
+      features: ['Sample discovery AI', 'BPM & key detection', 'Genre exploration', 'Production inspiration'],
+      tagline: 'Dig deeper, find gold',
       action: () => setSection('crates')
     },
     {
@@ -4289,7 +4376,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'ARTGEN.EXE',
       icon: ImageIcon,
       gradient: 'from-pink-400 to-pink-600',
-      description: 'AI album cover concepts • Visual design ideas',
+      description: 'Generate stunning album cover concepts that capture your sound\'s essence',
+      features: ['AI-powered design', 'Style customization', 'High-res exports', 'Multiple concepts'],
+      tagline: 'Visual identity that resonates',
       action: () => setSection('album_art')
     },
     {
@@ -4298,7 +4387,9 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'VIRAL.EXE',
       icon: Video,
       gradient: 'from-cyan-400 to-cyan-600',
-      description: 'TikTok/Reels concepts • Viral content strategy',
+      description: 'Craft viral-worthy video concepts for TikTok, Reels, and YouTube Shorts',
+      features: ['Trend analysis', 'Hook optimization', 'Platform-specific tips', 'Viral formula decoder'],
+      tagline: 'Content that breaks algorithms',
       action: () => setSection('viral_video')
     },
     {
@@ -4307,44 +4398,71 @@ const StudioHub = ({ setSection }) => {
       subtitle: 'TRENDS.EXE',
       icon: Hash,
       gradient: 'from-violet-400 to-fuchsia-600',
-      description: 'Hashtag analysis • Social media intelligence • Real-time trends',
+      description: 'Stay ahead of the curve with real-time social media trend intelligence',
+      features: ['Hashtag analytics', 'Trend prediction', 'Social listening', 'Competitive insights'],
+      tagline: 'Ride the wave before it breaks',
       action: () => setSection('trend_hunter')
     }
   ];
 
   return (
     <div className="h-full w-full relative overflow-y-auto bg-black" style={{WebkitOverflowScrolling: 'touch'}}>
-      {/* Glossy Background Effects */}
+      {/* Mystical Y2K Background Effects - Enhanced */}
       <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
-      <div className="fixed inset-0 opacity-30">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      <div className="fixed inset-0 opacity-40">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
       </div>
+      
+      {/* Grid pattern overlay */}
+      <div className="fixed inset-0 opacity-[0.02]" style={{
+        backgroundImage: 'linear-gradient(#00ff41 1px, transparent 1px), linear-gradient(90deg, #00ff41 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }}></div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        {/* Header */}
-        <div className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-gradient-to-r from-cyan-500/10 to-pink-500/10 backdrop-blur-xl border border-white/10 rounded-full">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs font-mono text-gray-400 tracking-wider">AI STUDIO ONLINE</span>
+        {/* Enhanced Header */}
+        <div className="text-center mb-16 md:mb-20">
+          <div className="inline-flex items-center gap-3 mb-6 px-6 py-3 bg-gradient-to-r from-cyan-500/10 via-pink-500/10 to-purple-500/10 backdrop-blur-xl border border-white/10 rounded-full shadow-lg shadow-cyan-500/5">
+            <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+            <span className="text-xs font-mono text-gray-300 tracking-[0.3em] uppercase">AI Studio Online</span>
+            <div className="w-px h-4 bg-white/20"></div>
+            <span className="text-xs font-mono text-cyan-400">8 Agents Ready</span>
           </div>
           
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black mb-4 tracking-tight">
-            <span className="bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent" style={{
-              textShadow: '0 0 80px rgba(255,255,255,0.1)'
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black mb-6 tracking-tighter relative">
+            <span className="bg-gradient-to-r from-cyan-400 via-pink-400 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_80px_rgba(0,255,255,0.3)]" style={{
+              textShadow: '0 0 80px rgba(0,255,255,0.1)'
             }}>
               STUDIO AGENTS
             </span>
           </h1>
           
-          <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            AI-powered creative tools trained on hip-hop culture and music production
+          <p className="text-gray-300 text-base md:text-xl max-w-3xl mx-auto leading-relaxed mb-4 font-light">
+            Advanced AI-powered creative tools engineered for the modern artist.
+            <br className="hidden md:block" />
+            <span className="text-cyan-400 font-medium">Trained on hip-hop culture</span>, <span className="text-pink-400 font-medium">optimized for creativity</span>, <span className="text-purple-400 font-medium">built for winners</span>.
           </p>
+          
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+              <Sparkles size={14} className="text-yellow-400" />
+              <span className="text-xs font-mono text-gray-400">Real-time generation</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+              <Zap size={14} className="text-cyan-400" />
+              <span className="text-xs font-mono text-gray-400">Lightning fast</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
+              <Flame size={14} className="text-red-400" />
+              <span className="text-xs font-mono text-gray-400">Battle-tested</span>
+            </div>
+          </div>
         </div>
 
-        {/* Agent Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {/* Enhanced Agent Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {agents.map((agent, index) => (
             <div
               key={agent.id}
@@ -4357,23 +4475,23 @@ const StudioHub = ({ setSection }) => {
                 opacity: 0
               }}
             >
-              {/* Glossy Card */}
-              <div className="relative h-full bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-2xl border border-white/10 rounded-3xl p-6 overflow-hidden transition-all duration-500 hover:scale-105 hover:border-white/20 hover:shadow-2xl hover:shadow-white/5">
+              {/* Enhanced Glossy Card */}
+              <div className="relative h-full bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-2xl border border-white/10 rounded-3xl p-6 overflow-hidden transition-all duration-500 hover:scale-[1.03] hover:border-white/20 hover:shadow-2xl hover:shadow-white/10">
                 
                 {/* Gradient Glow on Hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${agent.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${agent.gradient} opacity-0 group-hover:opacity-15 transition-opacity duration-500`}></div>
                 
                 {/* Icon */}
                 <div className="relative mb-6">
-                  <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.gradient} shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:shadow-2xl`}>
-                    <agent.icon size={24} className="text-white" strokeWidth={2.5} />
+                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.gradient} shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:shadow-2xl group-hover:shadow-current`}>
+                    <agent.icon size={28} className="text-white" strokeWidth={2.5} />
                   </div>
                 </div>
 
                 {/* Content */}
                 <div className="relative space-y-3">
                   <div>
-                    <h3 className="text-lg font-black text-white mb-1 tracking-tight">
+                    <h3 className="text-lg font-black text-white mb-1 tracking-tight group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text" style={{backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))`, '--tw-gradient-from': agent.gradient.split(' ')[1], '--tw-gradient-to': agent.gradient.split(' ')[3]}}>
                       {agent.title}
                     </h3>
                     <p className={`text-[10px] font-mono tracking-wider uppercase bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent font-bold`}>
@@ -4381,39 +4499,74 @@ const StudioHub = ({ setSection }) => {
                     </p>
                   </div>
 
-                  <p className="text-gray-400 text-xs leading-relaxed">
+                  <p className="text-gray-400 text-sm leading-relaxed font-light">
                     {agent.description}
                   </p>
+                  
+                  {/* Tagline */}
+                  <p className={`text-xs font-bold italic bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+                    {agent.tagline}
+                  </p>
+                  
+                  {/* Features List - Shows on hover */}
+                  <div className="space-y-1 opacity-0 group-hover:opacity-100 transition-all duration-300 max-h-0 group-hover:max-h-40 overflow-hidden">
+                    {agent.features.slice(0, 3).map((feature, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs text-gray-500">
+                        <div className={`w-1 h-1 rounded-full bg-gradient-to-r ${agent.gradient} mt-1.5 flex-shrink-0`}></div>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Launch Button */}
-                <div className="mt-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className={`text-xs font-mono font-bold bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent`}>
-                    LAUNCH
+                <div className="mt-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all duration-300 pt-4 border-t border-white/5">
+                  <span className={`text-sm font-mono font-bold bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent tracking-wider`}>
+                    LAUNCH →
                   </span>
-                  <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${agent.gradient} animate-pulse`}></div>
+                  <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${agent.gradient} animate-pulse shadow-lg`}></div>
                 </div>
 
                 {/* Shine Effect */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Bottom Status */}
-        <div className="mt-12 md:mt-16 text-center">
-          <div className="inline-flex items-center gap-4 px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
-            <div className="flex items-center gap-2">
-              <Zap size={14} className="text-cyan-400" />
-              <span className="text-xs font-mono text-gray-400">8 AGENTS ACTIVE</span>
+        {/* Enhanced Bottom Status & Marketing */}
+        <div className="mt-16 md:mt-20 space-y-8">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-6 px-8 py-4 bg-gradient-to-r from-white/5 via-white/[0.02] to-white/5 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
+              <div className="flex items-center gap-2">
+                <Zap size={16} className="text-cyan-400" />
+                <span className="text-sm font-mono text-gray-300">8 Agents Active</span>
+              </div>
+              <div className="w-px h-5 bg-white/20"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span className="text-sm font-mono text-gray-300">Response Time: <span className="text-green-400 font-bold">~2s</span></span>
+              </div>
+              <div className="w-px h-5 bg-white/20"></div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-yellow-400" />
+                <span className="text-sm font-mono text-gray-300">Unlimited Creativity</span>
+              </div>
             </div>
-            <div className="w-px h-4 bg-white/20"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-gray-400">RESPONSE TIME: <span className="text-green-400">~2s</span></span>
-            </div>
+          </div>
+          
+          {/* Marketing Copy */}
+          <div className="max-w-4xl mx-auto text-center space-y-4">
+            <p className="text-gray-400 text-sm leading-relaxed">
+              These aren't just tools—they're your creative arsenal. Each agent is trained on thousands of hours of hip-hop culture,
+              music production knowledge, and street wisdom. Whether you're crafting the next hit, training your battle skills, 
+              or discovering your visual identity, the Studio has you covered.
+            </p>
+            <p className="text-cyan-400 text-xs font-mono uppercase tracking-wider">
+              Built for artists. Optimized for winners. Ready when you are.
+            </p>
           </div>
         </div>
       </div>
@@ -4672,23 +4825,23 @@ const OSInterface = ({ reboot, initialSection }) => {
       case 'studio':
         return <StudioHub setSection={setActiveSection} />;
       case 'ghostwriter':
-        return <Ghostwriter />;
+        return <Ghostwriter setSection={setActiveSection} />;
       case 'chat':
-        return <SidekickChat />;
+        return <SidekickChat setSection={setActiveSection} />;
       case 'battle':
-        return <RapBattle />;
+        return <RapBattle setSection={setActiveSection} />;
       case 'crates':
-        return <CrateDigger />;
+        return <CrateDigger setSection={setActiveSection} />;
       case 'news':
         return <NewsArchive />;
       case 'ar_suite':
-        return <ARSuite />;
+        return <ARSuite setSection={setActiveSection} />;
       case 'album_art':
-        return <AlbumArtGenerator user={user} onAuthRequest={() => setShowAuthModal(true)} />;
+        return <AlbumArtGenerator user={user} onAuthRequest={() => setShowAuthModal(true)} setSection={setActiveSection} />;
       case 'viral_video':
-        return <ViralVideoAgent user={user} onAuthRequest={() => setShowAuthModal(true)} />;
+        return <ViralVideoAgent user={user} onAuthRequest={() => setShowAuthModal(true)} setSection={setActiveSection} />;
       case 'trend_hunter':
-        return <TrendHunter />;
+        return <TrendHunter setSection={setActiveSection} />;
       default:
         return <Home setSection={setActiveSection} />;
     }
