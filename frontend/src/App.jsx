@@ -1536,6 +1536,8 @@ const StyleArchive = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [filters, setFilters] = useState({ category: 'All', sort: 'newest', search: '' });
   const [showSeed, setShowSeed] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Firestore Sync with Fallback
   useEffect(() => {
@@ -1648,6 +1650,28 @@ const StyleArchive = () => {
     }
   };
 
+  const handleImageUpload = async () => {
+    if (!uploadFile || !storage) return;
+    
+    setUploadingImage(true);
+    try {
+      // Upload to Firebase Storage
+      const storageRef = ref(storage, `merch-images/${Date.now()}_${uploadFile.name}`);
+      await uploadBytes(storageRef, uploadFile);
+      const url = await getDownloadURL(storageRef);
+      
+      // Return URL for use in product form
+      alert(`Image uploaded! URL: ${url}`);
+      // Copy to clipboard
+      navigator.clipboard.writeText(url);
+      setUploadFile(null);
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed');
+    }
+    setUploadingImage(false);
+  };
+
   return (
     <div className="h-full flex flex-col bg-[#050505] text-gray-300 relative font-sans overflow-hidden">
       
@@ -1728,6 +1752,32 @@ const StyleArchive = () => {
                >
                  SEED DEFAULT INVENTORY
                </button>
+             )}
+
+             {/* Admin Image Upload */}
+             {isAdmin && (
+               <div className="mt-4 border-t border-[#333] pt-4">
+                 <h4 className="text-[10px] text-[#00ff41] font-bold mb-2 uppercase tracking-widest">Upload Product Image</h4>
+                 <input
+                   type="file"
+                   accept="image/*"
+                   onChange={(e) => setUploadFile(e.target.files[0])}
+                   className="w-full bg-[#0a0a0a] border border-[#333] text-white px-2 py-1 text-[9px] mb-2"
+                 />
+                 <button
+                   onClick={handleImageUpload}
+                   disabled={!uploadFile || uploadingImage}
+                   className="w-full bg-purple-600 text-white py-2 text-[10px] font-bold uppercase disabled:opacity-50 hover:bg-purple-500"
+                 >
+                   {uploadingImage ? 'UPLOADING...' : 'UPLOAD IMAGE'}
+                 </button>
+                 {uploadFile && (
+                   <div className="mt-1 text-[8px] text-gray-400 truncate">
+                     {uploadFile.name}
+                   </div>
+                 )}
+                 <p className="mt-2 text-[8px] text-gray-500">URL will be copied to clipboard</p>
+               </div>
              )}
           </div>
         </div>
