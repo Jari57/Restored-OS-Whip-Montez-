@@ -64,6 +64,22 @@
       ::-webkit-scrollbar-track { background: #111; }
       ::-webkit-scrollbar-thumb { background: #333; }
       ::-webkit-scrollbar-thumb:hover { background: #00ff41; }
+
+      /* Mobile Touch Optimizations */
+      * {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+      
+      button, a, [role="button"], [onclick] {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      
+      input, textarea, select {
+        touch-action: manipulation;
+      }
     </style>
   </head>
   <body>

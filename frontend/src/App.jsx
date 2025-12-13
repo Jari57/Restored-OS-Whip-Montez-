@@ -1812,13 +1812,15 @@ const MusicPlayer = () => {
              <div className="grid grid-cols-4 gap-2">
                 <button 
                   onClick={handlePrevious}
-                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onTouchEnd={(e) => { e.preventDefault(); handlePrevious(); }}
+                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                 >
                   <Rewind size={16}/>
                 </button>
                 <button 
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className={`bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  onTouchEnd={(e) => { e.preventDefault(); if (!audioLoading && currentTrack) setIsPlaying(!isPlaying); }}
+                  className={`bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation ${
                     audioLoading ? 'text-emerald-400 cursor-wait' : 'text-[#666] hover:text-[#00ff41]'
                   }`}
                   disabled={audioLoading || !currentTrack}
@@ -1827,13 +1829,15 @@ const MusicPlayer = () => {
                 </button>
                 <button 
                   onClick={handleStop}
-                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onTouchEnd={(e) => { e.preventDefault(); handleStop(); }}
+                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                 >
                   <div className="w-3 h-3 bg-current rounded-sm"></div>
                 </button>
                 <button 
                   onClick={handleNext}
-                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onTouchEnd={(e) => { e.preventDefault(); handleNext(); }}
+                  className="bg-[#222] h-10 rounded border-b-2 border-black active:border-b-0 active:translate-y-[2px] flex items-center justify-center text-[#666] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                 >
                   <div className="flex"><Play size={10}/><Play size={10}/></div>
                 </button>
@@ -2213,7 +2217,7 @@ const StyleArchive = () => {
               onChange={(e) => setFilters({...filters, search: e.target.value})}
             />
           </div>
-          <div onClick={() => setIsCartOpen(true)} className="relative cursor-pointer hover:text-[#00ff41] transition-colors">
+          <div onClick={() => setIsCartOpen(true)} onTouchEnd={(e) => { e.preventDefault(); setIsCartOpen(true); }} className="relative cursor-pointer hover:text-[#00ff41] transition-colors touch-manipulation">
             <ShoppingBag size={20}/>
             {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-[#00ff41] text-black text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cart.length}</span>}
           </div>
@@ -2232,7 +2236,8 @@ const StyleArchive = () => {
                 <div 
                   key={cat} 
                   onClick={() => setFilters({...filters, category: cat})}
-                  className={`cursor-pointer text-sm hover:text-white transition-colors flex justify-between items-center ${filters.category === cat ? 'text-white font-bold' : 'text-gray-500'}`}
+                  onTouchEnd={(e) => { e.preventDefault(); setFilters({...filters, category: cat}); }}
+                  className={`cursor-pointer text-sm hover:text-white transition-colors flex justify-between items-center touch-manipulation ${filters.category === cat ? 'text-white font-bold' : 'text-gray-500'}`}
                 >
                   {cat}
                   {filters.category === cat && <div className="w-1.5 h-1.5 bg-[#00ff41] rounded-full"></div>}
@@ -2308,7 +2313,8 @@ const StyleArchive = () => {
               <button 
                 key={cat} 
                 onClick={() => setFilters({...filters, category: cat})}
-                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border transition-colors ${
+                onTouchEnd={(e) => { e.preventDefault(); setFilters({...filters, category: cat}); }}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap border transition-colors touch-manipulation ${
                   filters.category === cat 
                     ? 'bg-[#00ff41] text-black border-[#00ff41]' 
                     : 'border-[#333] text-gray-500 active:bg-[#222]'
@@ -2347,7 +2353,8 @@ const StyleArchive = () => {
                   <div className="md:hidden absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black to-transparent">
                     <button 
                       onClick={() => { setCart([...cart, item]); setIsCartOpen(true); }}
-                      className="w-full bg-[#00ff41] text-black font-bold text-[10px] py-2 uppercase tracking-wider hover:bg-white transition-colors shadow-lg"
+                      onTouchEnd={(e) => { e.preventDefault(); setCart([...cart, item]); setIsCartOpen(true); }}
+                      className="w-full bg-[#00ff41] text-black font-bold text-[10px] py-2 uppercase tracking-wider hover:bg-white transition-colors shadow-lg touch-manipulation"
                     >
                       Add
                     </button>
@@ -2356,7 +2363,8 @@ const StyleArchive = () => {
                   <div className="hidden md:block absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black to-transparent">
                     <button 
                       onClick={() => { setCart([...cart, item]); setIsCartOpen(true); }}
-                      className="w-full bg-[#00ff41] text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-white transition-colors shadow-lg"
+                      onTouchEnd={(e) => { e.preventDefault(); setCart([...cart, item]); setIsCartOpen(true); }}
+                      className="w-full bg-[#00ff41] text-black font-bold text-xs py-3 uppercase tracking-widest hover:bg-white transition-colors shadow-lg touch-manipulation"
                     >
                       Add To Cart
                     </button>
@@ -2388,7 +2396,7 @@ const StyleArchive = () => {
           <div className="w-full sm:max-w-md bg-[#111] border-l border-[#333] shadow-2xl flex flex-col h-full animate-slide-in-right">
             <div className="h-12 md:h-16 border-b border-[#333] flex items-center justify-between px-3 md:px-6 shrink-0">
               <h2 className="text-base md:text-xl font-black uppercase tracking-tighter text-white">CART ({cart.length})</h2>
-              <button onClick={() => setIsCartOpen(false)}><X size={20} className="text-gray-400 hover:text-white"/></button>
+              <button onClick={() => setIsCartOpen(false)} onTouchEnd={(e) => { e.preventDefault(); setIsCartOpen(false); }} className="touch-manipulation"><X size={20} className="text-gray-400 hover:text-white"/></button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3 md:space-y-4" style={{WebkitOverflowScrolling: 'touch'}}>
               {cart.map((item, i) => (
@@ -4338,7 +4346,8 @@ const StudioHub = ({ setSection }) => {
             <div
               key={agent.id}
               onClick={agent.action}
-              className="group relative cursor-pointer"
+              onTouchEnd={(e) => { e.preventDefault(); agent.action(); }}
+              className="group relative cursor-pointer touch-manipulation"
               style={{ 
                 animation: 'fadeInUp 0.6s ease-out forwards',
                 animationDelay: `${index * 0.1}s`,
