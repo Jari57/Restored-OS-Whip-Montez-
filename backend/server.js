@@ -3,6 +3,63 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
+const morgan = require('morgan');
+const winston = require('winston');
+const fs = require('fs');
+
+// Environment detection
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const isDevelopment = NODE_ENV === 'development';
+const isProduction = NODE_ENV === 'production';
+
+// 🪵 WINSTON LOGGER SETUP
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+const logger = winston.createLogger({
+  level: isDevelopment ? 'debug' : 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.errors({ stack: true }),
+    winston.format.splat(),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'whip-montez-backend', env: NODE_ENV },
+  transports: [
+    // Error logs
+    new winston.transports.File({ 
+      filename: path.join(logDir, 'error.log'), 
+      level: 'error',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5
+    }),
+    // Combined logs
+    new winston.transports.File({ 
+      filename: path.join(logDir, 'combined.log'),
+      maxsize: 5242880, // 5MB
+      maxFiles: 5
+    })
+  ]
+});
+
+// Console output for development
+if (isDevelopment) {
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  }));
+} else {
+  // Simplified console for production (Railway logs)
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
+}
+
+logger.info(`🚀 Starting server in ${NODE_ENV} mode`);
 
 // 🟢 FORCE LOAD .ENV FROM CURRENT DIRECTORY (local dev only)
 // In production (Railway), environment variables come from the platform
@@ -10,11 +67,12 @@ const envPath = path.resolve(__dirname, '.env');
 try {
   const result = require('dotenv').config({ path: envPath });
   if (result.error && result.error.code !== 'ENOENT') {
-    // Only log errors that aren't "file not found" (expected in production)
-    console.warn("⚠️  .env file not found - using platform environment variables");
+    logger.warn('.env file not found - using platform environment variables');
+  } else if (!result.error) {
+    logger.info('.env file loaded successfully');
   }
 } catch (e) {
-  console.warn("⚠️  Could not load .env file - using platform environment variables");
+  logger.warn('Could not load .env file - using platform environment variables', { error: e.message });
 }
 
 const app = express();
@@ -23,6 +81,19 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// 🪵 REQUEST LOGGING
+if (isDevelopment) {
+  app.use(morgan('dev')); // Colorful logs for development
+} else {
+  // Production: Log to file and include more details
+  const accessLogStream = fs.createWriteStream(
+    path.join(logDir, 'access.log'),
+    { flags: 'a' }
+  );
+  app.use(morgan('combined', { stream: accessLogStream }));
+  app.use(morgan('tiny')); // Brief console output
+}
 
 // �️ RATE LIMITING - CRITICAL FOR PRODUCTION
 const apiLimiter = rateLimit({
@@ -44,12 +115,18 @@ const generationLimiter = rateLimit({
   skipSuccessfulRequests: false
 });
 
-// �🟢 DEBUG: CHECK IF KEY LOADED (Safe Print)
+// 🟢 API KEY VALIDATION
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
-    console.error("🔴 CRITICAL: GEMINI_API_KEY is missing from .env file!");
+    logger.error('CRITICAL: GEMINI_API_KEY is missing!', { 
+      env: NODE_ENV,
+      envVars: Object.keys(process.env).filter(k => k.includes('GEMINI'))
+    });
 } else {
-    console.log(`🟢 API Key Loaded: ${apiKey.substring(0, 8)}...`);
+    logger.info(`API Key loaded successfully`, { 
+      keyPrefix: apiKey.substring(0, 8),
+      keyLength: apiKey.length 
+    });
 }
 
 // Initialize Gemini
@@ -61,21 +138,48 @@ const genAI = new GoogleGenerativeAI(apiKey);
     if (typeof genAI.listModels === 'function') {
       const models = await genAI.listModels();
       const sample = Array.isArray(models) ? models.slice(0, 20).map(m => m.name || m.model || JSON.stringify(m)) : JSON.stringify(models);
-      console.log('🟢 Available models (sample):', sample);
+      logger.info('Available Gemini models fetched', { modelCount: sample.length, sample: sample.slice(0, 5) });
     } else {
-      console.log('ℹ️ listModels() not available on this SDK version.');
+      logger.info('listModels() not available on this SDK version');
     }
   } catch (err) {
-    console.warn('⚠️ Could not list models at startup:', err && err.message ? err.message : err);
+    logger.warn('Could not list models at startup', { error: err?.message });
   }
 })().catch(err => {
-  console.error('🔴 Fatal error during initialization:', err);
+  logger.error('Fatal error during initialization', { error: err });
   // Don't exit the process - server should stay running even if models check fails
 });
 
 // ROOT ROUTE (Health Check)
 app.get('/', (req, res) => {
   res.send('Whip Montez Backend System Online. Uplink Established.');
+});
+
+// 📊 MONITORING DASHBOARD
+app.get('/dashboard', (req, res) => {
+  logger.info('Dashboard accessed', { ip: req.ip });
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+// DETAILED HEALTH CHECK
+app.get('/health', (req, res) => {
+  const healthStatus = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: NODE_ENV,
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+    },
+    apiKey: apiKey ? 'configured' : 'missing',
+    rateLimiting: 'active',
+    nodeVersion: process.version,
+    platform: process.platform
+  };
+  
+  logger.debug('Health check requested', { ip: req.ip });
+  res.json(healthStatus);
 });
 
 // MODELS ROUTE - returns available models that support generateContent
@@ -117,29 +221,46 @@ app.get('/api/models', async (req, res) => {
 app.post('/api/generate', async (req, res) => {
   try {
     const { prompt, systemInstruction } = req.body;
-    console.log("Received generation request...");
+    logger.info('AI generation request', { 
+      ip: req.ip, 
+      promptLength: prompt.length,
+      hasSystemInstruction: !!systemInstruction 
+    });
 
     if (!apiKey) {
         throw new Error("Server missing API Key. Check backend/.env");
     }
 
-    const desiredModel = process.env.GENERATIVE_MODEL || "gemini-2.5-flash";
+    const desiredModel = process.env.GENERATIVE_MODEL || "gemini-2.0-flash-exp";
     const model = genAI.getGenerativeModel({ 
       model: desiredModel,
       systemInstruction: systemInstruction
     });
 
+    const startTime = Date.now();
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    const duration = Date.now() - startTime;
 
-    console.log("Generation successful.");
+    logger.info('Generation successful', { 
+      ip: req.ip,
+      duration: `${duration}ms`,
+      outputLength: text.length,
+      model: desiredModel
+    });
     res.json({ output: text });
 
   } catch (error) {
     const msg = error && error.message ? error.message : String(error);
     const statusCode = error?.response?.status || error?.status || (msg.includes('429') ? 429 : 500);
-    console.error('Generation Error:', msg);
+    
+    logger.error('Generation error', { 
+      error: msg,
+      statusCode,
+      ip: req.ip,
+      stack: error?.stack
+    });
 
     // Handle quota / rate limit explicitly so the frontend can show a clear message
     if (statusCode === 429) {
@@ -159,35 +280,41 @@ app.post('/api/generate', async (req, res) => {
 
 const HOST = '0.0.0.0'; // Bind to all interfaces for Railway
 const server = app.listen(PORT, HOST, () => {
-  console.log(`> Server running on http://${HOST}:${PORT}`);
-  console.log('> Uplink Ready.');
+  logger.info('Server started successfully', {
+    host: HOST,
+    port: PORT,
+    environment: NODE_ENV,
+    nodeVersion: process.version,
+    platform: process.platform
+  });
+  logger.info(`🚀 Uplink Ready at http://${HOST}:${PORT}`);
 });
 
 // Graceful shutdown handlers
 process.on('SIGTERM', () => {
-  console.log('🔴 SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed successfully');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('🔴 SIGINT received, shutting down gracefully...');
+  logger.info('SIGINT received, shutting down gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed successfully');
     process.exit(0);
   });
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('🔴 Uncaught Exception:', err);
+  logger.error('Uncaught Exception - Server will restart', { error: err.message, stack: err.stack });
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('🔴 Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Promise Rejection', { reason, promise });
   // Don't exit - keep server running even on unhandled rejections
 });

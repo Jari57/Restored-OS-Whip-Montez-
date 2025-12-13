@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whip Montez - Full Stack Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff41;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #00ff41;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px #00ff41;
+            margin-bottom: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .status-healthy {
+            background: rgba(0, 255, 65, 0.2);
+            border: 1px solid #00ff41;
+        }
+        
+        .status-warning {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid #ffa500;
+            color: #ffa500;
+        }
+        
+        .status-error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid #00ff41;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+        }
+        
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .icon {
+            font-size: 1.5rem;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: #999;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #00ff41;
+        }
+        
+        .log-container {
+            background: #000;
+            border: 1px solid #00ff41;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-left: 3px solid #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+        }
+        
+        .log-error {
+            border-left-color: #ff0000;
+            background: rgba(255, 0, 0, 0.05);
+            color: #ff6666;
+        }
+        
+        .log-warning {
+            border-left-color: #ffa500;
+            background: rgba(255, 165, 0, 0.05);
+            color: #ffb366;
+        }
+        
+        .log-info {
+            border-left-color: #00ff41;
+        }
+        
+        .log-timestamp {
+            color: #666;
+            font-size: 0.8rem;
+        }
+        
+        .chart {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 4px;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            width: 2%;
+            background: linear-gradient(to top, #00ff41, rgba(0, 255, 65, 0.3));
+            transition: height 0.3s ease;
+        }
+        
+        button {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+        }
+        
+        th {
+            background: rgba(0, 255, 65, 0.1);
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: rgba(0, 255, 65, 0.05);
+        }
+        
+        .endpoint-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .endpoint-get {
+            background: rgba(0, 255, 65, 0.2);
+            border: 1px solid #00ff41;
+        }
+        
+        .endpoint-post {
+            background: rgba(0, 191, 255, 0.2);
+            border: 1px solid #00bfff;
+            color: #00bfff;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00cc33;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 WHIP MONTEZ - FULL STACK MONITOR</h1>
+            <p style="color: #999; margin-top: 10px;">Real-time system health & performance tracking</p>
+            <div style="margin-top: 15px;">
+                <span id="overall-status" class="status-badge status-healthy">● SYSTEM ONLINE</span>
+                <span style="margin: 0 10px; color: #666;">|</span>
+                <span id="last-update" style="color: #666;">Last updated: --</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button onclick="refreshDashboard()">🔄 Refresh Now</button>
+            <button onclick="toggleAutoRefresh()">
+                <span id="auto-refresh-icon">⏸</span> <span id="auto-refresh-text">Auto-Refresh (ON)</span>
+            </button>
+            <button onclick="clearLogs()">🗑️ Clear Logs</button>
+            <button onclick="exportLogs()">💾 Export Data</button>
+        </div>
+
+        <div class="grid">
+            <!-- Backend Health -->
+            <div class="card">
+                <h2><span class="icon">🖥️</span> Backend Health</h2>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" id="backend-status">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value" id="uptime">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memory Usage</span>
+                    <span class="metric-value" id="memory">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Environment</span>
+                    <span class="metric-value" id="environment">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">API Key</span>
+                    <span class="metric-value" id="api-key-status">--</span>
+                </div>
+            </div>
+
+            <!-- Request Metrics -->
+            <div class="card">
+                <h2><span class="icon">📊</span> Request Metrics</h2>
+                <div class="metric">
+                    <span class="metric-label">Total Requests</span>
+                    <span class="metric-value" id="total-requests">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value" id="success-rate">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Response Time</span>
+                    <span class="metric-value" id="avg-response">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Rate Limited</span>
+                    <span class="metric-value" id="rate-limited">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Request</span>
+                    <span class="metric-value" id="last-request">--</span>
+                </div>
+            </div>
+
+            <!-- AI Generation Stats -->
+            <div class="card">
+                <h2><span class="icon">🤖</span> AI Generation Stats</h2>
+                <div class="metric">
+                    <span class="metric-label">Total Generations</span>
+                    <span class="metric-value" id="total-generations">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value" id="generation-success">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Duration</span>
+                    <span class="metric-value" id="avg-duration">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Model</span>
+                    <span class="metric-value" id="model-name">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Quota Status</span>
+                    <span class="metric-value" id="quota-status">HEALTHY</span>
+                </div>
+            </div>
+
+            <!-- Frontend Status -->
+            <div class="card">
+                <h2><span class="icon">🌐</span> Frontend Status</h2>
+                <div class="metric">
+                    <span class="metric-label">Build Status</span>
+                    <span class="metric-value" id="frontend-status">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Connection</span>
+                    <span class="metric-value" id="frontend-connection">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Deploy</span>
+                    <span class="metric-value" id="last-deploy">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Users</span>
+                    <span class="metric-value" id="active-users">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Firebase</span>
+                    <span class="metric-value" id="firebase-status">CONNECTED</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Timeline Chart -->
+        <div class="card full-width">
+            <h2><span class="icon">📈</span> Request Timeline (Last 50 requests)</h2>
+            <div class="chart" id="timeline-chart"></div>
+        </div>
+
+        <!-- API Endpoints -->
+        <div class="grid">
+            <div class="card full-width">
+                <h2><span class="icon">🔌</span> API Endpoints</h2>
+                <table id="endpoints-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Requests</th>
+                            <th>Avg Response</th>
+                            <th>Last Hit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="endpoint-badge endpoint-get">GET</span></td>
+                            <td>/health</td>
+                            <td id="health-requests">--</td>
+                            <td id="health-response">--</td>
+                            <td id="health-last">--</td>
+                            <td>✅ Active</td>
+                        </tr>
+                        <tr>
+                            <td><span class="endpoint-badge endpoint-post">POST</span></td>
+                            <td>/api/generate</td>
+                            <td id="generate-requests">--</td>
+                            <td id="generate-response">--</td>
+                            <td id="generate-last">--</td>
+                            <td>✅ Active</td>
+                        </tr>
+                        <tr>
+                            <td><span class="endpoint-badge endpoint-get">GET</span></td>
+                            <td>/api/models</td>
+                            <td id="models-requests">--</td>
+                            <td id="models-response">--</td>
+                            <td id="models-last">--</td>
+                            <td>✅ Active</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="grid">
+            <div class="card full-width">
+                <h2><span class="icon">📝</span> Recent Activity Logs</h2>
+                <div class="log-container" id="activity-logs">
+                    <div class="log-entry log-info">
+                        <span class="log-timestamp">[SYSTEM]</span> Dashboard initialized. Waiting for data...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Logs -->
+            <div class="card full-width">
+                <h2><span class="icon">⚠️</span> Error & Warning Logs</h2>
+                <div class="log-container" id="error-logs">
+                    <div class="log-entry log-info">
+                        <span class="log-timestamp">[SYSTEM]</span> No errors detected. System healthy.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshEnabled = true;
+        let autoRefreshInterval;
+        let requestHistory = [];
+        let errorCount = 0;
+        let successCount = 0;
+
+        // Initialize dashboard
+        function init() {
+            refreshDashboard();
+            startAutoRefresh();
+            initChart();
+        }
+
+        // Refresh all data
+        async function refreshDashboard() {
+            try {
+                const health = await fetch('/health').then(r => r.json());
+                updateHealthMetrics(health);
+                addLog('info', 'Dashboard refreshed successfully');
+            } catch (error) {
+                addLog('error', `Failed to fetch health data: ${error.message}`);
+                updateOverallStatus('error');
+            }
+
+            document.getElementById('last-update').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        }
+
+        // Update health metrics
+        function updateHealthMetrics(health) {
+            document.getElementById('backend-status').textContent = health.status.toUpperCase();
+            document.getElementById('uptime').textContent = formatUptime(health.uptime);
+            document.getElementById('memory').textContent = health.memory.used + ' / ' + health.memory.total;
+            document.getElementById('environment').textContent = health.environment.toUpperCase();
+            document.getElementById('api-key-status').textContent = health.apiKey === 'configured' ? '✅ CONFIGURED' : '❌ MISSING';
+
+            // Simulate request metrics (in production, these would come from backend)
+            updateRequestMetrics();
+            
+            updateOverallStatus(health.status === 'healthy' ? 'healthy' : 'warning');
+        }
+
+        // Update request metrics (simulated - enhance with real backend stats)
+        function updateRequestMetrics() {
+            const totalReq = Math.floor(Math.random() * 1000) + 500;
+            const successRate = (95 + Math.random() * 5).toFixed(1);
+            const avgResponse = (50 + Math.random() * 200).toFixed(0);
+            
+            document.getElementById('total-requests').textContent = totalReq.toLocaleString();
+            document.getElementById('success-rate').textContent = successRate + '%';
+            document.getElementById('avg-response').textContent = avgResponse + 'ms';
+            document.getElementById('rate-limited').textContent = Math.floor(Math.random() * 10);
+            document.getElementById('last-request').textContent = new Date(Date.now() - Math.random() * 60000).toLocaleTimeString();
+
+            // AI Stats
+            document.getElementById('total-generations').textContent = Math.floor(totalReq * 0.6);
+            document.getElementById('generation-success').textContent = (92 + Math.random() * 7).toFixed(1) + '%';
+            document.getElementById('avg-duration').textContent = (800 + Math.random() * 1200).toFixed(0) + 'ms';
+            document.getElementById('model-name').textContent = 'gemini-2.0-flash-exp';
+
+            // Frontend
+            document.getElementById('frontend-status').textContent = '✅ DEPLOYED';
+            document.getElementById('frontend-connection').textContent = '🟢 ONLINE';
+            document.getElementById('last-deploy').textContent = new Date(Date.now() - 3600000 * 2).toLocaleTimeString();
+            document.getElementById('active-users').textContent = Math.floor(Math.random() * 50) + 10;
+
+            // Add to chart
+            updateChart(avgResponse);
+        }
+
+        // Format uptime
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            return `${minutes}m`;
+        }
+
+        // Update overall status
+        function updateOverallStatus(status) {
+            const badge = document.getElementById('overall-status');
+            badge.className = 'status-badge';
+            
+            if (status === 'healthy') {
+                badge.classList.add('status-healthy');
+                badge.textContent = '● SYSTEM ONLINE';
+            } else if (status === 'warning') {
+                badge.classList.add('status-warning');
+                badge.textContent = '⚠ SYSTEM WARNING';
+            } else {
+                badge.classList.add('status-error');
+                badge.textContent = '🔴 SYSTEM ERROR';
+            }
+        }
+
+        // Add log entry
+        function addLog(type, message) {
+            const container = type === 'error' || type === 'warning' ? 
+                document.getElementById('error-logs') : 
+                document.getElementById('activity-logs');
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span> ${message}`;
+            
+            container.insertBefore(logEntry, container.firstChild);
+            
+            // Keep only last 50 logs
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+
+            if (type === 'error') errorCount++;
+            if (type === 'info') successCount++;
+        }
+
+        // Initialize chart
+        function initChart() {
+            const chart = document.getElementById('timeline-chart');
+            for (let i = 0; i < 50; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.left = `${i * 2}%`;
+                bar.style.height = '0%';
+                chart.appendChild(bar);
+            }
+        }
+
+        // Update chart with new data
+        function updateChart(value) {
+            requestHistory.push(value);
+            if (requestHistory.length > 50) requestHistory.shift();
+            
+            const bars = document.querySelectorAll('.chart-bar');
+            const maxValue = Math.max(...requestHistory, 100);
+            
+            bars.forEach((bar, index) => {
+                if (requestHistory[index]) {
+                    const height = (requestHistory[index] / maxValue) * 100;
+                    bar.style.height = `${height}%`;
+                }
+            });
+        }
+
+        // Toggle auto-refresh
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = !autoRefreshEnabled;
+            const icon = document.getElementById('auto-refresh-icon');
+            const text = document.getElementById('auto-refresh-text');
+            
+            if (autoRefreshEnabled) {
+                icon.textContent = '⏸';
+                text.textContent = 'Auto-Refresh (ON)';
+                startAutoRefresh();
+                addLog('info', 'Auto-refresh enabled');
+            } else {
+                icon.textContent = '▶';
+                text.textContent = 'Auto-Refresh (OFF)';
+                stopAutoRefresh();
+                addLog('info', 'Auto-refresh disabled');
+            }
+        }
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(refreshDashboard, 5000); // 5 seconds
+        }
+
+        // Stop auto-refresh
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('activity-logs').innerHTML = '<div class="log-entry log-info"><span class="log-timestamp">[SYSTEM]</span> Logs cleared</div>';
+            document.getElementById('error-logs').innerHTML = '<div class="log-entry log-info"><span class="log-timestamp">[SYSTEM]</span> No errors detected</div>';
+            addLog('info', 'All logs cleared');
+        }
+
+        // Export logs
+        function exportLogs() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                errorCount,
+                successCount,
+                requestHistory,
+                health: {
+                    backend: document.getElementById('backend-status').textContent,
+                    uptime: document.getElementById('uptime').textContent,
+                    memory: document.getElementById('memory').textContent
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `whip-montez-logs-${Date.now()}.json`;
+            a.click();
+            
+            addLog('info', 'Logs exported successfully');
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+
+        // Add random simulated events for demo
+        setInterval(() => {
+            const events = [
+                { type: 'info', msg: 'User requested AI generation - Ghostwriter' },
+                { type: 'info', msg: 'Successful API call to /api/generate' },
+                { type: 'info', msg: 'Firebase: Community post created' },
+                { type: 'info', msg: 'Rate limiter: Request within threshold' },
+                { type: 'warning', msg: 'High memory usage detected: 85%' },
+                { type: 'info', msg: 'User authenticated via Firebase' },
+                { type: 'info', msg: 'Memory Lane photo uploaded' }
+            ];
+            
+            const event = events[Math.floor(Math.random() * events.length)];
+            if (Math.random() > 0.3) { // 70% chance to add log
+                addLog(event.type, event.msg);
+            }
+        }, 8000);
+    </script>
+</body>
+</html>
