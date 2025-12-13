@@ -4229,229 +4229,207 @@ const StudioHub = ({ setSection }) => {
   const agents = [
     {
       id: 'ghostwriter',
-      title: 'NEURAL LYRICIST',
-      subtitle: 'QUANTUM VERSE ENGINE',
+      title: 'LYRIC RECOVERY TOOL',
+      subtitle: 'GHOSTWRITER.EXE',
       icon: Sparkles,
-      gradient: 'from-cyan-500 via-blue-500 to-purple-600',
-      glowColor: 'rgba(6,182,212,0.4)',
-      particleColor: '#06b6d4',
-      description: 'Generate infinite verses with AI consciousness',
-      action: () => setSection('ghostwriter'),
-      tags: ['GPT-4', 'NEURAL', 'REAL-TIME']
+      gradient: 'from-cyan-400 to-cyan-600',
+      description: 'AI-powered lyric generation • Voice input • Text-to-speech',
+      action: () => setSection('ghostwriter')
     },
     {
       id: 'chat',
-      title: 'CONSCIOUSNESS LINK',
-      subtitle: 'AI PERSONALITY MATRIX',
+      title: 'AI SIDEKICK CHAT',
+      subtitle: 'SIDEKICK.EXE',
       icon: MessageSquare,
-      gradient: 'from-pink-500 via-rose-500 to-red-500',
-      glowColor: 'rgba(236,72,153,0.4)',
-      particleColor: '#ec4899',
-      description: 'Interface with Whip\'s digital consciousness',
-      action: () => setSection('chat'),
-      tags: ['SENTIENT', 'CHAT', 'MEMORY']
+      gradient: 'from-pink-400 to-pink-600',
+      description: 'Conversational AI assistant • Creative collaboration',
+      action: () => setSection('chat')
     },
     {
       id: 'battle',
-      title: 'COMBAT SIMULATOR',
-      subtitle: 'FREESTYLE WAR ZONE',
+      title: 'CIPHER DOJO',
+      subtitle: 'BATTLE.EXE',
       icon: Flame,
-      gradient: 'from-red-500 via-orange-500 to-yellow-500',
-      glowColor: 'rgba(239,68,68,0.4)',
-      particleColor: '#ef4444',
-      description: 'Real-time battle rap AI with adaptive responses',
-      action: () => setSection('battle'),
-      tags: ['ADVERSARIAL', 'LIVE', 'ADAPTIVE']
+      gradient: 'from-red-400 to-red-600',
+      description: 'Battle rap simulator • Real-time AI disses • NYC slang',
+      action: () => setSection('battle')
     },
     {
       id: 'ar_suite',
-      title: 'CAREER ORACLE',
-      subtitle: 'PREDICTIVE ANALYTICS',
-      icon: TrendingUp,
-      gradient: 'from-indigo-500 via-purple-500 to-pink-500',
-      glowColor: 'rgba(139,92,246,0.4)',
-      particleColor: '#8b5cf6',
-      description: 'Strategic insights powered by industry data',
-      action: () => setSection('ar_suite'),
-      tags: ['ANALYTICS', 'STRATEGY', 'ML']
+      title: 'AR EXPERIENCE SUITE',
+      subtitle: 'AR_SUITE.EXE',
+      icon: Zap,
+      gradient: 'from-blue-400 to-blue-600',
+      description: 'Augmented reality concepts • Immersive experiences',
+      action: () => setSection('ar_suite')
     },
     {
       id: 'crates',
-      title: 'SONIC ARCHAEOLOGIST',
-      subtitle: 'SAMPLE QUANTUM SEARCH',
+      title: 'CRATE DIGGER',
+      subtitle: 'SAMPLES.EXE',
       icon: Disc,
-      gradient: 'from-amber-500 via-yellow-500 to-orange-500',
-      glowColor: 'rgba(245,158,11,0.4)',
-      particleColor: '#f59e0b',
-      description: 'Deep learning sample discovery engine',
-      action: () => setSection('crates'),
-      tags: ['AUDIO-ML', 'DISCOVERY', 'RARE']
+      gradient: 'from-yellow-400 to-yellow-600',
+      description: 'Sample discovery • Production inspiration • BPM/Key info',
+      action: () => setSection('crates')
+    },
+    {
+      id: 'album_art',
+      title: 'ALBUM ART GENERATOR',
+      subtitle: 'ARTGEN.EXE',
+      icon: ImageIcon,
+      gradient: 'from-pink-400 to-pink-600',
+      description: 'AI album cover concepts • Visual design ideas',
+      action: () => setSection('album_art')
     },
     {
       id: 'viral_video',
-      title: 'VIRAL ARCHITECT',
-      subtitle: 'CONTENT SYNTHESIS AI',
+      title: 'VIRAL VIDEO AGENT',
+      subtitle: 'VIRAL.EXE',
       icon: Video,
-      gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
-      glowColor: 'rgba(16,185,129,0.4)',
-      particleColor: '#10b981',
-      description: 'Generate viral concepts using trend analysis',
-      action: () => setSection('viral_video'),
-      tags: ['VIRAL', 'VIDEO-GEN', 'TRENDS']
+      gradient: 'from-cyan-400 to-cyan-600',
+      description: 'TikTok/Reels concepts • Viral content strategy',
+      action: () => setSection('viral_video')
     },
     {
       id: 'trend_hunter',
-      title: 'TREND HUNTER',
-      subtitle: 'SOCIAL INTELLIGENCE AI',
-      icon: TrendingUp,
-      gradient: 'from-violet-500 via-fuchsia-500 to-pink-500',
-      glowColor: 'rgba(139,92,246,0.4)',
-      particleColor: '#8b5cf6',
-      description: 'Real-time hashtag analysis and social media scraping',
-      action: () => setSection('trend_hunter'),
-      tags: ['HASHTAGS', 'SOCIAL-SCAN', 'REAL-TIME']
+      title: 'TREND HUNTER AI',
+      subtitle: 'TRENDS.EXE',
+      icon: Hash,
+      gradient: 'from-violet-400 to-fuchsia-600',
+      description: 'Hashtag analysis • Social media intelligence • Real-time trends',
+      action: () => setSection('trend_hunter')
     }
   ];
 
   return (
-    <div className="h-full w-full relative overflow-hidden flex items-center justify-center">
-      {/* Animated Background Grid */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(rgba(6,182,212,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.1) 1px, transparent 1px)',
-          backgroundSize: '50px 50px',
-          animation: 'gridMove 20s linear infinite'
-        }}></div>
+    <div className="h-full w-full relative overflow-y-auto bg-black" style={{WebkitOverflowScrolling: 'touch'}}>
+      {/* Glossy Background Effects */}
+      <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+      <div className="fixed inset-0 opacity-30">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
-      
-      {/* Radial Gradient Orbs */}
-      <div className="absolute top-20 left-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-      <div className="relative z-10 w-full max-w-7xl px-4 md:px-8 py-8 md:py-12">
-        {/* Hero Header */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        {/* Header */}
         <div className="text-center mb-12 md:mb-16">
-          <div className="inline-block mb-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-              <span className="text-cyan-400 text-xs md:text-sm font-mono tracking-[0.3em] uppercase">NEURAL INTERFACE ACTIVE</span>
-              <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
-            </div>
+          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-gradient-to-r from-cyan-500/10 to-pink-500/10 backdrop-blur-xl border border-white/10 rounded-full">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-xs font-mono text-gray-400 tracking-wider">AI STUDIO ONLINE</span>
           </div>
-          <h1 className="text-4xl md:text-7xl font-black bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4" style={{
-            textShadow: '0 0 40px rgba(6,182,212,0.3)',
-            letterSpacing: '-0.02em'
-          }}>
-            AI STUDIO 2026
+          
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black mb-4 tracking-tight">
+            <span className="bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent" style={{
+              textShadow: '0 0 80px rgba(255,255,255,0.1)'
+            }}>
+              STUDIO AGENTS
+            </span>
           </h1>
-          <p className="text-gray-400 text-sm md:text-base font-light max-w-2xl mx-auto leading-relaxed">
-            Next-generation artificial intelligence agents trained on hip-hop culture, <br className="hidden md:block"/>
-            ready to collaborate on your creative vision
+          
+          <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            AI-powered creative tools trained on hip-hop culture and music production
           </p>
         </div>
 
-        {/* Agent Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Agent Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {agents.map((agent, index) => (
             <div
               key={agent.id}
               onClick={agent.action}
               className="group relative cursor-pointer"
-              style={{ animationDelay: `${index * 100}ms` }}
+              style={{ 
+                animation: 'fadeInUp 0.6s ease-out forwards',
+                animationDelay: `${index * 0.1}s`,
+                opacity: 0
+              }}
             >
-              {/* Glassmorphic Card */}
-              <div className="relative h-full bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:border-white/30 hover:shadow-2xl">
+              {/* Glossy Card */}
+              <div className="relative h-full bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent backdrop-blur-2xl border border-white/10 rounded-3xl p-6 overflow-hidden transition-all duration-500 hover:scale-105 hover:border-white/20 hover:shadow-2xl hover:shadow-white/5">
                 
-                {/* Animated Gradient Border Glow */}
-                <div className={`absolute inset-0 bg-gradient-to-r ${agent.gradient} opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10`}></div>
+                {/* Gradient Glow on Hover */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${agent.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
                 
-                {/* Floating Orb */}
-                <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 blur-2xl transition-all duration-700" style={{ background: agent.glowColor }}></div>
-                
-                {/* Icon Container with 3D Effect */}
+                {/* Icon */}
                 <div className="relative mb-6">
-                  <div className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${agent.gradient} shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3`}>
-                    <agent.icon size={32} className="text-white drop-shadow-lg" strokeWidth={2.5} />
+                  <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.gradient} shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:shadow-2xl`}>
+                    <agent.icon size={24} className="text-white" strokeWidth={2.5} />
                   </div>
-                  {/* Pulsing Rings */}
-                  <div className={`absolute inset-0 rounded-2xl border-2 opacity-0 group-hover:opacity-100 group-hover:scale-150 transition-all duration-700`} style={{ borderColor: agent.particleColor }}></div>
-                  <div className={`absolute inset-0 rounded-2xl border opacity-0 group-hover:opacity-50 group-hover:scale-125 transition-all duration-500 delay-75`} style={{ borderColor: agent.particleColor }}></div>
                 </div>
 
                 {/* Content */}
                 <div className="relative space-y-3">
                   <div>
-                    <h3 className="text-xl md:text-2xl font-black text-white mb-1 tracking-tight group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-300 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                    <h3 className="text-lg font-black text-white mb-1 tracking-tight">
                       {agent.title}
                     </h3>
-                    <p className={`text-xs font-mono tracking-wider uppercase bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent`}>
+                    <p className={`text-[10px] font-mono tracking-wider uppercase bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent font-bold`}>
                       {agent.subtitle}
                     </p>
                   </div>
 
-                  <p className="text-gray-400 text-sm leading-relaxed min-h-[40px]">
+                  <p className="text-gray-400 text-xs leading-relaxed">
                     {agent.description}
                   </p>
-
-                  {/* Tech Tags */}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {agent.tags.map(tag => (
-                      <span 
-                        key={tag} 
-                        className="px-2 py-1 text-[10px] font-mono font-bold tracking-wider bg-white/5 border border-white/10 rounded-md group-hover:border-white/30 group-hover:bg-white/10 transition-all duration-300"
-                        style={{ color: agent.particleColor }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
                 </div>
 
-                {/* Activation Indicator */}
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="text-xs font-mono text-gray-500">ACTIVATE</span>
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 animate-pulse"></div>
+                {/* Launch Button */}
+                <div className="mt-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span className={`text-xs font-mono font-bold bg-gradient-to-r ${agent.gradient} bg-clip-text text-transparent`}>
+                    LAUNCH
+                  </span>
+                  <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${agent.gradient} animate-pulse`}></div>
                 </div>
 
-                {/* Scan Line Effect */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" style={{
-                  animation: 'scanLine 3s ease-in-out infinite',
-                  animationDelay: `${index * 0.5}s`
-                }}></div>
+                {/* Shine Effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Bottom Status Bar */}
-        <div className="mt-12 text-center">
+        {/* Bottom Status */}
+        <div className="mt-12 md:mt-16 text-center">
           <div className="inline-flex items-center gap-4 px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs font-mono text-gray-400">ALL SYSTEMS ONLINE</span>
+              <Zap size={14} className="text-cyan-400" />
+              <span className="text-xs font-mono text-gray-400">8 AGENTS ACTIVE</span>
             </div>
             <div className="w-px h-4 bg-white/20"></div>
             <div className="flex items-center gap-2">
-              <Cpu size={14} className="text-cyan-500" />
-              <span className="text-xs font-mono text-gray-400">NEURAL NET READY</span>
-            </div>
-            <div className="w-px h-4 bg-white/20"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-gray-400">LATENCY: <span className="text-green-400">24ms</span></span>
+              <span className="text-xs font-mono text-gray-400">RESPONSE TIME: <span className="text-green-400">~2s</span></span>
             </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes gridMove {
-          0% { transform: translate(0, 0); }
-          100% { transform: translate(50px, 50px); }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        @keyframes scanLine {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100%); }
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
         }
       `}</style>
     </div>
