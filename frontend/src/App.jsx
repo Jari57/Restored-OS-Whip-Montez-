@@ -7947,6 +7947,12 @@ const NewsArchive = () => {
   const [cached2004News, setCached2004News] = useState(null);
   const { canUse, consume, limit } = useFreeLimit('aiAgentUsage_news', 5);
 
+  // Activity Feed State
+  const [activityFeed, setActivityFeed] = useState([]);
+  const [activityPage, setActivityPage] = useState(1);
+  const [hasMoreActivity, setHasMoreActivity] = useState(true);
+  const [isFetchingActivity, setIsFetchingActivity] = useState(false);
+
   // Default 2004-era hip-hop news (AI will generate more when toggled)
   const default2004News = [
     { id: 1, date: "DEC 12 2004", time: "11:23 PM EST", source: "THE SOURCE", author: "Staff", title: "KANYE WEST'S 'COLLEGE DROPOUT' RESHAPES HIP-HOP", content: "The Chicago producer-turned-rapper's debut album continues to dominate charts, proving backpack rap can go mainstream.", tags: ["HIPHOP", "ALBUMS", "CHICAGO"] },
@@ -7980,6 +7986,43 @@ const NewsArchive = () => {
     } catch (e) {
       console.error('Failed to fetch live news:', e);
       return null;
+    }
+  };
+
+  // Fetch Activity Feed
+  const fetchActivity = async (page) => {
+    if (isFetchingActivity) return;
+    setIsFetchingActivity(true);
+    
+    try {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const baseUrl = isLocal ? 'http://localhost:3001' : '';
+      
+      const response = await fetch(`${baseUrl}/api/activity?page=${page}&limit=20`);
+      const result = await response.json();
+      
+      if (result.data) {
+        setActivityFeed(prev => page === 1 ? result.data : [...prev, ...result.data]);
+        setHasMoreActivity(result.meta.hasMore);
+        setActivityPage(page);
+      }
+    } catch (err) {
+      console.error('Failed to fetch activity:', err);
+    } finally {
+      setIsFetchingActivity(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchActivity(1);
+  }, []);
+
+  // Infinite scroll handler
+  const handleScroll = (e) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.target;
+    if (scrollHeight - scrollTop <= clientHeight + 100 && hasMoreActivity && !isFetchingActivity) {
+      fetchActivity(activityPage + 1);
     }
   };
 
@@ -8145,7 +8188,37 @@ Make each article feel substantial and newsworthy. No markdown.`;
                  <RefreshCw size={14} />
                </button>
              </div>
-             <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[calc(100vh-200px)]" style={{ scrollbarWidth: 'thin', scrollbarColor: '#00ff41 #0a0a0a' }}>
+             
+             {/* Activity Feed Section */}
+             <div className="p-3 border-b border-white/10 bg-black/50">
+                <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Community Activity</h4>
+                <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                  {activityFeed.map((item) => (
+                    <div key={item.id} className="flex gap-2 items-start text-xs group">
+                      <div className="w-6 h-6 rounded-full bg-gray-800 overflow-hidden shrink-0 border border-gray-700 group-hover:border-[#00ff41] transition-colors">
+                        <img src={item.avatar} alt={item.user} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-300 leading-tight">
+                          <span className="text-[#00ff41] font-medium">{item.user}</span> {item.action} <span className="text-white italic">{item.project}</span>
+                        </p>
+                        <span className="text-[10px] text-gray-600">{item.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {hasMoreActivity && (
+                    <button 
+                      onClick={() => fetchActivity(activityPage + 1)} 
+                      disabled={isFetchingActivity}
+                      className="w-full text-[10px] text-center py-1 text-gray-500 hover:text-[#00ff41] transition-colors"
+                    >
+                      {isFetchingActivity ? 'Loading...' : 'Load More Activity'}
+                    </button>
+                  )}
+                </div>
+             </div>
+
+             <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#00ff41 #0a0a0a' }}>
                {trendingPosts.map((post, i) => (
                  <div key={i} className="bg-black border border-white/10 p-3 rounded hover:border-cyan-500/30 transition-all cursor-pointer">
                    <div className="flex items-start gap-2 mb-2">

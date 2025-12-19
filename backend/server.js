@@ -766,6 +766,78 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
+// =============================================================================
+// ACTIVITY FEED API (THE WIRE)
+// =============================================================================
+
+// Helper to generate random activity items
+const generateActivityFeed = (page = 1, limit = 20) => {
+  const actions = [
+    'generated a new lyric block', 'created an album cover', 'mastered a track with AI', 
+    'is training a voice model', 'generated a music video', 'discovered a sample',
+    'collaborated with Ghostwriter', 'used Beat Lab', 'analyzed a trend', 'minted a track'
+  ];
+  
+  const projects = [
+    'Neon Nights', 'Brooklyn Soul', 'Red Hook Diaries', 'Midnight Metro', 
+    'Cyber Punk 2077', 'Lost Tapes Vol. 1', 'Underground Kings', 'Lo-Fi Dreams',
+    'Future Bass', 'Trap Soul', 'Golden Era', 'Boom Bap Revival'
+  ];
+  
+  const users = [
+    'DJ Shadow', 'MC Lyte', 'BeatMaster', 'FlowQueen', 'RhythmChild', 
+    'SonicWave', 'AudioJunkie', 'VinylAddict', 'SampleGod', 'LoopKing',
+    'SynthWizard', 'BassHead', 'DrumMajor', 'VocalChops', 'MixMaster'
+  ];
+
+  const items = [];
+  const startIndex = (page - 1) * limit;
+  
+  for (let i = 0; i < limit; i++) {
+    const id = startIndex + i + 1;
+    const user = users[Math.floor(Math.random() * users.length)];
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    const project = projects[Math.floor(Math.random() * projects.length)];
+    const timeAgo = Math.floor(Math.random() * 60); // 0-60 mins ago
+    
+    items.push({
+      id: `act-${id}`,
+      user,
+      action,
+      project,
+      time: `${timeAgo}m ago`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}`,
+      image: Math.random() > 0.7 ? `https://picsum.photos/seed/${id}/400/200` : null
+    });
+  }
+  
+  return items;
+};
+
+app.get('/api/activity', (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    
+    // Simulate network delay for realism
+    setTimeout(() => {
+      const activities = generateActivityFeed(page, limit);
+      res.json({
+        data: activities,
+        meta: {
+          page,
+          limit,
+          hasMore: page < 10 // Limit to 10 pages of mock data
+        }
+      });
+    }, 500);
+    
+  } catch (err) {
+    logger.error('Activity API error', { error: err.message });
+    res.status(500).json({ error: 'Failed to fetch activity feed' });
+  }
+});
+
 // Generate PKCE code verifier and challenge
 const generatePKCE = () => {
   const verifier = crypto.randomBytes(32).toString('base64url');
