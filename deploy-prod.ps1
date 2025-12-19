@@ -29,6 +29,15 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "   Frontend build successful" -ForegroundColor Green
 Set-Location ..
 
+# Step 2b: Sync build to backend public folder
+Write-Host ""
+Write-Host "Syncing frontend build to backend..." -ForegroundColor Cyan
+$distPath = Join-Path $PSScriptRoot "frontend/dist"
+$publicPath = Join-Path $PSScriptRoot "backend/public"
+if (Test-Path $publicPath) { Remove-Item -Recurse -Force $publicPath }
+Copy-Item -Path $distPath -Destination $publicPath -Recurse -Force
+Write-Host "   Sync complete" -ForegroundColor Green
+
 # Step 3: Run tests (if any)
 Write-Host ""
 Write-Host "Running validation checks..." -ForegroundColor Cyan
