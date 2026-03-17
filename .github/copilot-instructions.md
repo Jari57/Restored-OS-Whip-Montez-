@@ -671,7 +671,8 @@ When things go wrong, follow these specific recovery steps for common failure sc
 6. Test with: `curl http://localhost:3001/api/models`
 
 **Prevention:**
-- Set calendar reminder to rotate keys every 90 days
+- Set calendar reminder to rotate keys every 90 days (production)
+- Development keys can be rotated less frequently (180 days)
 - Monitor backend logs for authentication errors
 - Keep backup key in secure location (not in git)
 
@@ -907,7 +908,8 @@ app.post('/api/data', (req, res) => {
   cache.set(req.body.id, req.body.data);
 });
 
-// ✅ Implement cache eviction
+// ✅ Implement cache eviction (example with lru-cache package)
+// Note: Requires `npm install lru-cache` if implementing
 const LRU = require('lru-cache');
 const cache = new LRU({ max: 500, ttl: 1000 * 60 * 5 });
 ```
@@ -1323,7 +1325,7 @@ Ensure all dependencies work together to avoid runtime errors.
 **Backend Dependencies:**
 | Package | Version | Notes |
 |---------|---------|-------|
-| Node.js | 22.12.0 | Required by backend |
+| Node.js | 22.12.0 | Current version (minimum: 20.19.0) |
 | Express | ^5.2.1 | Latest stable |
 | @google/generative-ai | ^0.24.1 | Gemini SDK |
 | Firebase Admin | N/A | Not used in backend |
@@ -2126,10 +2128,11 @@ performance.memory.usedJSHeapSize / 1024 / 1024 + 'MB'
 
 ### Cost Benchmarks
 
-**Gemini API:**
-- gemini-2.0-flash-exp: ~$0.001 per request
-- gemini-1.5-pro: ~$0.01 per request
+**Gemini API (pricing as of March 2026, verify current rates):**
+- gemini-2.0-flash-exp: ~$0.001 per request (estimate)
+- gemini-1.5-pro: ~$0.01 per request (estimate)
 - Target: <$50/month for moderate usage
+- Check latest pricing: https://ai.google.dev/pricing
 
 **Firebase:**
 - Reads: Aim for <50,000/day (free tier)
@@ -2266,7 +2269,7 @@ setInterval(() => {
 
 **1. Enable Compression:**
 ```javascript
-// In backend/server.js
+// In backend/server.js (requires: npm install compression)
 const compression = require('compression');
 app.use(compression());  // Gzip responses
 ```
