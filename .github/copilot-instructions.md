@@ -1042,6 +1042,7 @@ Understanding API limits prevents unexpected failures and helps with cost planni
 **Current Configuration:**
 - Rate limit in backend: 100 requests / 15 minutes per IP
 - Model: `gemini-2.0-flash-exp` (cost varies by model)
+- Verify latest pricing: https://ai.google.dev/pricing
 
 **Monitoring Usage:**
 ```bash
